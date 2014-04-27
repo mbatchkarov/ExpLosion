@@ -1,0 +1,48 @@
+<html>
+<head>
+    <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="static/css/index.css">
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
+    <script src="static/js/index.js" type="text/javascript"></script>
+
+    <title>Visualise BoV results</title>
+</head>
+<body>
+
+<form id="form">
+    {% for key,values in data.items %}
+        <div id="{{ key }}">
+            {{ key }} :
+            {% for value in values %}
+                &nbsp {{ value }} <input type="checkbox" name="{{ value }}" {% if forloop.first %}checked {% endif %}>
+                {{ c }}
+            {% endfor %}
+            <br>
+        </div>
+    {% endfor %}
+    <br>
+</form>
+
+<input type="button" class="btn btn-success btn-xs" value="Add group" onclick="add_group()">
+<input type="button" class="btn btn-warning btn-xs" value="Clear groups" onclick="clear_groups()">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<input type="button" class="btn btn-success btn-xs" value="Analyse selected groups" onclick="do_refresh()">
+
+
+<br><br>
+
+<div id="groups-div" class="invisible_div">
+    Current groups:<br>
+</div>
+
+<br><br>
+
+<div id="results-div">
+    Results will appear here
+</div>
+<br>
+
+</body>
+</html>

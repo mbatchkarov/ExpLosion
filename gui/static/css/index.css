@@ -1,0 +1,13 @@
+.table-nonfluid {
+    width: inherit;
+}
+
+.invisible_div {
+    border: 2px solid;
+    visibility: hidden;
+}
+
+.visible_div {
+    border: 2px solid;
+    visibility: visible;
+}

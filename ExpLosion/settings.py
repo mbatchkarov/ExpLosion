@@ -1,5 +1,5 @@
 """
-Django settings for ExpPlosion project.
+Django settings for ExpLosion project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/1.6/topics/settings/
@@ -34,8 +34,8 @@ INSTALLED_APPS = (
     # 'django.contrib.contenttypes',
     # 'django.contrib.sessions',
     # 'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'ExpPlosion',
+    # 'django.contrib.staticfiles',
+    'ExpLosion',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -47,7 +47,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'ExpPlosion.urls'
+ROOT_URLCONF = 'ExpLosion.urls'
 
 WSGI_APPLICATION = 'ExpLosion.wsgi.application'
 

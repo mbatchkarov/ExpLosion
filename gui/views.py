@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.forms.models import model_to_dict
@@ -12,8 +13,8 @@ def index(request):
     valid_fields = {}
     # field -> all values it has in the database
     for column_name in data.keys():
-        valid_fields[column_name] = set(Experiment.objects.values_list(column_name, flat=True))
-    return render_to_response('index.html', {'data': valid_fields})
+        valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
+    return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 
 
 def analyse(request, analyser=None):
@@ -30,3 +31,13 @@ def analyse(request, analyser=None):
         response.write(content)
 
     return response
+
+
+def add_group(request):
+    params = {k: request.GET.getlist(k) for k in request.GET.keys()}
+    current_groups = request.session.get('groups', [])
+    print current_groups
+    current_groups.append('params')
+    request.session['groups'] = current_groups
+
+    return HttpResponse('OK')

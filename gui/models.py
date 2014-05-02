@@ -9,7 +9,7 @@ class Experiment(models.Model):
     thesaurus_features = models.CharField(max_length=100)
     svd = models.IntegerField()
     document_features = models.CharField(max_length=100)
-    baronified = models.BooleanField()
+    # baronified = models.NullBooleanField(null=True)
 
     def __unicode__(self):
         return 'exp{}:{}-{}-{},{}-{},{}'.format(self.number, self.unlabelled, self.svd, self.thesaurus_features[:3],

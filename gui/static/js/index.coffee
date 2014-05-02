@@ -36,21 +36,52 @@ form_params = (form) ->
     res = process_form_element(params, elem) for elem in form.elements
     return res
 
+#defaultDict = (map, defaul) ->
+## from http://stackoverflow.com/a/13059975/419338
+#    (key) ->
+#        return map[key]  if key of map
+#        return defaul(key)  if typeof defaul is "function"
+#        return defaul
+#
+#add_group = ->
+#    d = $('#groups-div')
+#    d[0].className = "visible_div"
+#
+#    params = form_params($("#form")[0]) # make a query dict out the the form values
+#    for k, v of params
+#        myval = "#{k}: #{v}..."
+#        myval2 = "<input type=\'button\' class=\'btn btn-success btn-xs\' value=\"#{myval}\"> <nbsp>"
+#        d.append(myval2);
+#    d.append("<br>");
+#    console.log "Added group"
+#    return
+#
 add_group = ->
-    d = $('#groups-div')
-    d[0].className = "visible_div"
+    checked_boxes = new Object()
+    for paramdiv in document.getElementById('form').children
+        checked_boxes[paramdiv.id] = []
+        for box in paramdiv.children
+            if box.checked
+                checked_boxes[paramdiv.id].push(box.name)
+    suffix = jQuery.param checked_boxes
 
-    params = form_params($("#form")[0]) # make a query dict out the the form values
-    for k, v of params
-        myval = "#{k}: #{v}..."
-        myval2 = "<input type=\'button\' class=\'btn btn-success btn-xs\' value=\"#{myval}\"> <nbsp>"
-        d.append(myval2);
-    d.append("<br>");
+    suffix = "?".concat(suffix)
+    myurl = "/add_group".concat(suffix)
+    $.ajax(
+        url: myurl
+        success: (data) ->
+                d = $('#groups-div')
+                d[0].className = "visible_div"
+                d.append data
+                # $("#results-div").html data
+                return
+    )
+
     return
 
-clear_groups = ->
-    $('#groups-div').html ""
-    $('#groups-div')[0].className = "invisible_div"
+#clear_groups = ->
+#    $('#groups-div').html ""
+#    $('#groups-div')[0].className = "invisible_div"
 
 do_refresh = ->
     params = form_params($("#form")[0]) # make a query dict out the the form values

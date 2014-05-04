@@ -1,13 +1,3 @@
-reload = (my_suffix) ->
-    $("#results-div").html "" #give user feedback by flashing page
-    $.ajax
-        url: "/analyse".concat(my_suffix)
-        success: (data) ->
-            $("#results-div").html data
-            return
-    return
-
-
 process_form_element = (output_hash, element) ->
     name = element.name
     value = element.value
@@ -29,33 +19,13 @@ process_form_element = (output_hash, element) ->
 
     return output_hash
 
-form_params = (form) ->
+parse_form_params_to_hash = (form) ->
     # autotranslated (and adapted) to coffeescript from
     # http://stackoverflow.com/questions/316781/how-to-build-query-string-with-javascript
     params = new Object()
     res = process_form_element(params, elem) for elem in form.elements
     return res
 
-#defaultDict = (map, defaul) ->
-## from http://stackoverflow.com/a/13059975/419338
-#    (key) ->
-#        return map[key]  if key of map
-#        return defaul(key)  if typeof defaul is "function"
-#        return defaul
-#
-#add_group = ->
-#    d = $('#groups-div')
-#    d[0].className = "visible_div"
-#
-#    params = form_params($("#form")[0]) # make a query dict out the the form values
-#    for k, v of params
-#        myval = "#{k}: #{v}..."
-#        myval2 = "<input type=\'button\' class=\'btn btn-success btn-xs\' value=\"#{myval}\"> <nbsp>"
-#        d.append(myval2);
-#    d.append("<br>");
-#    console.log "Added group"
-#    return
-#
 add_group = ->
     checked_boxes = new Object()
     for paramdiv in document.getElementById('form').children
@@ -96,8 +66,13 @@ toggle_duplicates = ->
             $('#groups-div')[0].className = "visible_div"
     )
 
-do_refresh = ->
-    params = form_params($("#form")[0]) # make a query dict out the the form values
-    suffix = jQuery.param(params) # turn dict into query string
-    reload "?".concat(suffix)
+analyze_selected_experiments = ->
+    params = parse_form_params_to_hash($("#form")[0]) # make a query dict out the the form values
+    query_string = "?".concat(jQuery.param(params)) # turn dict into query string
+
+    $.ajax
+        url: "/analyse".concat(query_string)
+        success: (data) ->
+            $("#results-div").html data
+            return
     return

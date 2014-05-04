@@ -108,7 +108,7 @@ def populate_manually():
     for line in table_descr:
         print line
         num, unlab, lab, svd, comp, doc_feats, thes_feats = line.split(',') # todo add baronified
-        exp = Experiment(number=num, composer=comp, labelled=lab,
+        exp = Experiment(id=num, composer=comp, labelled=lab,
                          unlabelled=unlab, svd=svd,
                          document_features=doc_feats,
                          thesaurus_features=thes_feats,)

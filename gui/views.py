@@ -10,7 +10,7 @@ from gui.user_code import Table
 
 def index(request):
     # get all fields of the Experiment object
-    data = model_to_dict(Experiment.objects.get(number=1), exclude=['number'])
+    data = model_to_dict(Experiment.objects.get(id=1), exclude=['id'])
     valid_fields = {}
     # field -> all values it has in the database
     for column_name in data.keys():
@@ -38,17 +38,16 @@ def add_group(request):
     # store the newly requested experiments in the session
     params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
     query_dict = {'%s__in' % k: v for k, v in params.items()}
-    new_experiments = Experiment.objects.values_list('number', flat=True).filter(**query_dict)
+    new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
     existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])
     request.session['groups'] = existing_experiments
 
     # render all currently requested experiments
-    experiments = Experiment.objects.all().filter(number__in=existing_experiments)
+    experiments = Experiment.objects.all().filter(id__in=existing_experiments)
     if len(experiments) < 1:
         return HttpResponse('No experiments match your current selection')
 
-    data = {}
     desc = 'Settings for selected experiments:'
     header = sorted(x for x in experiments[0].__dict__ if not x.startswith('_'))
     rows = []
@@ -60,6 +59,5 @@ def add_group(request):
 
 
 def clear_groups(request):
-    print 'clearing groups'
     request.session['groups'] = []
     return HttpResponse()

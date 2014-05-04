@@ -118,6 +118,11 @@ def populate_manually():
 
 class Table():
     def __init__(self, header, rows, desc):
+        for row in rows:
+            if not len(header) == len(row):
+                raise ValueError('Malformed table. Header has %d columns and one of '
+                                 'the rows has %d'%(len(header), len(row)))
+
         self.header = header
         self.rows = rows
         self.description = desc

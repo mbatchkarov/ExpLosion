@@ -70,18 +70,23 @@ add_group = ->
     $.ajax(
         url: myurl
         success: (data) ->
-                d = $('#groups-div')
-                d[0].className = "visible_div"
-                d.append data
-                # $("#results-div").html data
-                return
+            d = $('#groups-div')
+            d[0].className = "visible_div"
+            d.html data
+            return
     )
 
     return
 
-#clear_groups = ->
-#    $('#groups-div').html ""
-#    $('#groups-div')[0].className = "invisible_div"
+clear_groups = ->
+    $.ajax(
+        url: '/clear_groups'
+        success: (data) ->
+            $('#groups-div').html ""
+            $('#groups-div')[0].className = "invisible_div"
+            return
+    )
+
 
 do_refresh = ->
     params = form_params($("#form")[0]) # make a query dict out the the form values

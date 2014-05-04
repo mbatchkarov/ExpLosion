@@ -5,6 +5,7 @@ from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 
 from gui.models import Experiment
+from gui.user_code import Table
 
 
 def index(request):
@@ -34,10 +35,31 @@ def analyse(request, analyser=None):
 
 
 def add_group(request):
-    params = {k: request.GET.getlist(k) for k in request.GET.keys()}
-    current_groups = request.session.get('groups', [])
-    print current_groups
-    current_groups.append('params')
-    request.session['groups'] = current_groups
+    # store the newly requested experiments in the session
+    params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
+    query_dict = {'%s__in' % k: v for k, v in params.items()}
+    new_experiments = Experiment.objects.values_list('number', flat=True).filter(**query_dict)
+    existing_experiments = request.session.get('groups', [])
+    existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])
+    request.session['groups'] = existing_experiments
 
-    return HttpResponse('OK')
+    # render all currently requested experiments
+    experiments = Experiment.objects.all().filter(number__in=existing_experiments)
+    if len(experiments) < 1:
+        return HttpResponse('No experiments match your current selection')
+
+    data = {}
+    desc = 'Settings for selected experiments:'
+    header = sorted(x for x in experiments[0].__dict__ if not x.startswith('_'))
+    rows = []
+    for exp in experiments:
+        rows.append([getattr(exp, field) for field in header])
+
+    table = Table(header, rows, desc)
+    return render_to_response('table.html', table.__dict__)
+
+
+def clear_groups(request):
+    print 'clearing groups'
+    request.session['groups'] = []
+    return HttpResponse()

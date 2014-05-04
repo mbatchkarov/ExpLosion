@@ -1,3 +1,4 @@
+from operator import itemgetter
 from gui.models import Experiment
 import matplotlib.pyplot as plt
 from cStringIO import StringIO
@@ -107,12 +108,12 @@ def populate_manually():
     ]
     for line in table_descr:
         print line
-        num, unlab, lab, svd, comp, doc_feats, thes_feats = line.split(',') # todo add baronified
+        num, unlab, lab, svd, comp, doc_feats, thes_feats = line.split(',')  # todo add baronified
         exp = Experiment(id=num, composer=comp, labelled=lab,
                          unlabelled=unlab, svd=svd,
                          document_features=doc_feats,
-                         thesaurus_features=thes_feats,)
-                         # baronified=bool(int(baronified)))
+                         thesaurus_features=thes_feats, )
+        # baronified=bool(int(baronified)))
         exp.save()
 
 
@@ -121,11 +122,25 @@ class Table():
         for row in rows:
             if not len(header) == len(row):
                 raise ValueError('Malformed table. Header has %d columns and one of '
-                                 'the rows has %d'%(len(header), len(row)))
+                                 'the rows has %d' % (len(header), len(row)))
 
         self.header = header
         self.rows = rows
         self.description = desc
+
+    def prune(self):
+        """
+        Removes columns where all values are duplicates
+        """
+        dupl_idx = []
+        for i, column_name in enumerate(self.header):
+            if len(set(row[i] for row in self.rows)) == 1:
+                # just one value
+                dupl_idx.append(i)
+        if dupl_idx and len(self.rows) > 1:
+            idx_to_keep = set(range(len(self.header))) - set(dupl_idx)
+            self.header = itemgetter(*idx_to_keep)(self.header)
+            self.rows = [itemgetter(*idx_to_keep)(row) for row in self.rows]
 
 
 class BaseExplosionAnalysis(object):

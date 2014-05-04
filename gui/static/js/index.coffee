@@ -83,10 +83,18 @@ clear_groups = ->
         url: '/clear_groups'
         success: (data) ->
             $('#groups-div').html ""
+            $('#results-div').html ""
             $('#groups-div')[0].className = "invisible_div"
             return
     )
 
+toggle_duplicates = ->
+    $.ajax(
+        url: '/toggle_duplicates'
+        success: (data) ->
+            $('#groups-div').html data
+            $('#groups-div')[0].className = "visible_div"
+    )
 
 do_refresh = ->
     params = form_params($("#form")[0]) # make a query dict out the the form values

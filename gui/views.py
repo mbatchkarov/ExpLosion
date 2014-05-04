@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
+from django.views.decorators.cache import never_cache
 
 from gui.models import Experiment
 from gui.user_code import Table
@@ -33,6 +34,27 @@ def analyse(request, analyser=None):
 
     return response
 
+@never_cache
+def show_current_selection(request, allow_pruning=False):
+    # render all currently requested experiments
+    existing_experiments = request.session.get('groups', [])
+    experiments = Experiment.objects.all().filter(id__in=existing_experiments)
+    if len(experiments) < 1:
+        return HttpResponse('No experiments match your current selection')
+    desc = 'Settings for selected experiments:'
+    header = sorted(x for x in experiments[0].__dict__ if not x.startswith('_'))
+    rows = []
+    for exp in experiments:
+        rows.append([getattr(exp, field) for field in header])
+    table = Table(header, rows, desc)
+
+    if allow_pruning:
+        prune = not request.session.get('prune_duplicates', False) # initially false
+        request.session['prune_duplicates'] = prune
+        if prune:
+            table.prune()
+    return render_to_response('table.html', table.__dict__)
+
 
 def add_group(request):
     # store the newly requested experiments in the session
@@ -43,21 +65,9 @@ def add_group(request):
     existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])
     request.session['groups'] = existing_experiments
 
-    # render all currently requested experiments
-    experiments = Experiment.objects.all().filter(id__in=existing_experiments)
-    if len(experiments) < 1:
-        return HttpResponse('No experiments match your current selection')
-
-    desc = 'Settings for selected experiments:'
-    header = sorted(x for x in experiments[0].__dict__ if not x.startswith('_'))
-    rows = []
-    for exp in experiments:
-        rows.append([getattr(exp, field) for field in header])
-
-    table = Table(header, rows, desc)
-    return render_to_response('table.html', table.__dict__)
+    return show_current_selection(request)
 
 
 def clear_groups(request):
-    request.session['groups'] = []
+    request.session.flush()
     return HttpResponse()

@@ -2,10 +2,11 @@ from django.conf.urls import patterns, url
 
 from django.contrib import admin
 from gui import views
-from gui.user_code import BaseExplosionAnalysis
+from gui.user_code import *
 
 
-analyser = BaseExplosionAnalysis()
+# analyser = BaseExplosionAnalysis()
+analyser = ThesisgeneratorExplosionAnalysis()
 analyser.populate_experiments_db()
 
 admin.autodiscover()

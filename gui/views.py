@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 from gui.models import Experiment, Table
 
 
-def index():
+def index(request):
     # get all fields of the Experiment object
     data = model_to_dict(Experiment.objects.get(id=1), exclude=['id'])
     valid_fields = {}
@@ -21,11 +21,12 @@ def index():
 def analyse(request, analyser=None):
     response = HttpResponse()
 
-    for table in analyser.get_tables():
+    exp_ids = request.session['groups']
+    for table in analyser.get_tables(exp_ids):
         content = render_to_string('table.html', table.__dict__)
         response.write(content)
 
-    for img in analyser.get_figures():
+    for img in analyser.get_figures(exp_ids):
         content = render_to_string('image.html', {'image': img})
         response.write(content)
 

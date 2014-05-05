@@ -1,10 +1,13 @@
-<table class="table table-nonfluid table-hover table-bordered table-condensed" border="1" width="500">
+<table class="table table-nonfluid table-hover table-bordered table-condensed tablesorter" border="1" width="500">
     {{ description }} <br>
+    <thead>
     <tr>
         {% for h in header %}
             <th> {{ h }} </th>
         {% endfor %}
     </tr>
+    </thead>
+    <tbody>
     {% for row in rows %}
         <tr>
             {% for x in row %} {# row.get_some_info #}
@@ -12,5 +15,6 @@
             {% endfor %}
         </tr>
     {% endfor %}
+    </tbody>
 </table>
 <br>

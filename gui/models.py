@@ -10,7 +10,7 @@ class Experiment(models.Model):
     thesaurus_features = models.CharField(max_length=100)
     svd = models.IntegerField()
     document_features = models.CharField(max_length=100)
-    # baronified = models.NullBooleanField(null=True)
+    baronified = models.IntegerField()
 
     def __unicode__(self):
         return 'exp{}:{}-{}-{},{}-{},{}'.format(self.id, self.unlabelled, self.svd, self.thesaurus_features[:3],
@@ -18,6 +18,40 @@ class Experiment(models.Model):
 
     class Meta:
         db_table = 'ExperimentDescriptions'
+
+
+def get_results_table(param):
+    """
+    Thesisgenerator-specific model for extracting results out of the database
+    From http://stackoverflow.com/questions/5036357/single-django-model-multiple-tables
+    """
+
+    class MyClassMetaclass(models.base.ModelBase):
+        def __new__(cls, name, bases, attrs):
+            return models.base.ModelBase.__new__(cls, 'data%d' % param, bases, attrs)
+
+    class ThesisgeneratorPerformanceResult(models.Model):
+        __metaclass__ = MyClassMetaclass
+
+        id = models.AutoField(primary_key=True)
+        name = models.TextField(blank=True)
+        git_hash = models.TextField(blank=True)
+        consolidation_date = models.DateTimeField()
+        cv_folds = models.IntegerField(blank=True, null=True)
+        sample_size = models.IntegerField(blank=True, null=True)
+        classifier = models.TextField(blank=True)
+        metric = models.TextField(blank=True)
+        score_mean = models.FloatField(blank=True, null=True)
+        score_std = models.FloatField(blank=True, null=True)
+
+        class Meta:
+            db_table = 'data%d' % param
+            ordering = ['sample_size']
+
+        def get_performance_info(self):
+            return self.sample_size, self.score_mean, self.score_std / self.cv_folds
+
+    return ThesisgeneratorPerformanceResult
 
 
 class Table():

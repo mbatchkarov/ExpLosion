@@ -5,11 +5,10 @@ from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
 
-from gui.models import Experiment
-from gui.user_code import Table
+from gui.models import Experiment, Table
 
 
-def index(request):
+def index():
     # get all fields of the Experiment object
     data = model_to_dict(Experiment.objects.get(id=1), exclude=['id'])
     valid_fields = {}
@@ -20,8 +19,6 @@ def index(request):
 
 
 def analyse(request, analyser=None):
-    params = dict(request.GET.items())
-    params['analyser'] = analyser
     response = HttpResponse()
 
     for table in analyser.get_tables():

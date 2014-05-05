@@ -1,9 +1,10 @@
-from operator import itemgetter
-from gui.models import Experiment
-import matplotlib.pyplot as plt
 from cStringIO import StringIO
 import base64
+
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
+from gui.models import Experiment, Table
 
 
 def populate_manually():
@@ -117,35 +118,7 @@ def populate_manually():
         exp.save()
 
 
-class Table():
-    def __init__(self, header, rows, desc):
-        for row in rows:
-            if not len(header) == len(row):
-                raise ValueError('Malformed table. Header has %d columns and one of '
-                                 'the rows has %d' % (len(header), len(row)))
-
-        self.header = header
-        self.rows = rows
-        self.description = desc
-
-    def prune(self):
-        """
-        Removes columns where all values are duplicates
-        """
-        dupl_idx = []
-        for i, column_name in enumerate(self.header):
-            if len(set(row[i] for row in self.rows)) == 1:
-                # just one value
-                dupl_idx.append(i)
-        if dupl_idx and len(self.rows) > 1:
-            idx_to_keep = set(range(len(self.header))) - set(dupl_idx)
-            self.header = itemgetter(*idx_to_keep)(self.header)
-            self.rows = [itemgetter(*idx_to_keep)(row) for row in self.rows]
-
-
 class BaseExplosionAnalysis(object):
-    def __init__(self):
-        self.analyses = []
 
     @staticmethod
     def populate_experiments_db(*args, **kwargs):

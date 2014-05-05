@@ -1,3 +1,4 @@
+from math import sqrt
 from operator import itemgetter
 from django.db import models
 
@@ -49,7 +50,7 @@ def get_results_table(param):
             ordering = ['sample_size']
 
         def get_performance_info(self):
-            return self.sample_size, self.score_mean, self.score_std / self.cv_folds
+            return self.sample_size, self.score_mean, self.score_std / sqrt(self.cv_folds)
 
     return ThesisgeneratorPerformanceResult
 

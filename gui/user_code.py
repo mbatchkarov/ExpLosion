@@ -1,11 +1,13 @@
 from cStringIO import StringIO
 import base64
+import re
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
+import statsmodels.api as sm
 
 from gui.models import Experiment, Table, get_results_table
 
@@ -150,7 +152,6 @@ class BaseExplosionAnalysis(object):
             ax.plot(range(10))
 
             canvas = FigureCanvas(fig)
-
             s = StringIO()
             canvas.print_png(s)
             base64_images.append(base64.b64encode(s.getvalue()))
@@ -162,18 +163,77 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     def get_tables(exp_ids):
         return [
             ThesisgeneratorExplosionAnalysis.get_performance_table(exp_ids),
-            ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids)
+            ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
         ] if exp_ids else []
+
 
     @staticmethod
     def get_figures(exp_ids):
-        return []
+        # todo this takes too long, there must be a better way
+        # detailed_analysis = [ThesisgeneratorExplosionAnalysis.read_image_from_disk_to_base64(x) for x in exp_ids]
+        return [
+            ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids),
+            # detailed_analysis,
+        ] if exp_ids else []
+
+
+    @staticmethod
+    def read_image_from_disk_to_base64(exp_id):
+        with open("../thesisgenerator/figures/stats-exp%d-0.png" % exp_id, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+        return encoded_string
+
+    @staticmethod
+    def get_r2_correlation_plot(exp_ids):
+        print 'running r2 scatter'
+        with open('../thesisgenerator/figures/stats_output.txt') as infile:
+            txt = ''.join(infile.readlines())
+
+        # find which experiment a section of the log file relates to
+        logs = txt.split('INFO:\t\n\n\n')[1:]
+        logs = {int(re.search('DOING EXPERIMENT exp([0-9]+)-0', x).groups()[0]): x for x in logs}
+
+        rsquared = {k: float(re.search('R-squared:\s+([0-9\.]+)', v).groups()[0]) for k, v in logs.items()}
+        # todo put this in database
+
+        selected_r2 = [rsquared[n] for n in exp_ids]
+        selected_f1 = [get_results_table(n).objects.
+                           values_list('score_mean', flat=True).filter(metric='macroavg_f1',
+                                                                       classifier='MultinomialNB')[0] for n in exp_ids]
+
+        fig = plt.Figure(dpi=100, facecolor='white')
+        ax = fig.add_subplot(111)
+
+        # do whatever magic is needed here
+        coef, r2, r2adj = ThesisgeneratorExplosionAnalysis.plot_regression_line(ax,
+                                                                                np.array(selected_r2),
+                                                                                np.array(selected_f1),
+                                                                                np.ones(len(selected_f1)))
+        composer_names = []
+        for n in exp_ids:
+            composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
+            composer_names.append('%d-%s' % (n, composer_name))
+        ax.scatter(selected_r2, selected_f1)
+        for i, txt in enumerate(composer_names):
+            ax.annotate(txt, (selected_r2[i], selected_f1[i]), fontsize='x-small')
+
+        if len(coef) > 1:
+            fig.suptitle('R2 on class associations vs F1. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
+        else:
+            fig.suptitle('All x values are 0, cannot fit regression line')
+
+        canvas = FigureCanvas(fig)
+        s = StringIO()
+        canvas.print_png(s)
+        return base64.b64encode(s.getvalue())
 
     @staticmethod
     def get_performance_table(exp_ids):
+        print 'running performance query'
         data = []
         sample_size = 500
         for n in exp_ids:
+            composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
             for classifier in ['MultinomialNB']:
                 results = get_results_table(n).objects.all().filter(metric='macroavg_f1',
                                                                     classifier=classifier,
@@ -183,10 +243,11 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                     print 'skipping table %d and classifier %s' % (n, classifier)
                     continue
 
-                size, f1, f1std = results[0].get_performance_info()
-                data.append([n, classifier, sample_size, '{:.2%}'.format(f1), '{:.2%}'.format(f1std)])
+                size, f1, f1stderr = results[0].get_performance_info()
+                data.append([n, classifier, composer_name,
+                             sample_size, '{:.2%}'.format(f1), '{:.2%}'.format(f1stderr)])
 
-        return Table(['id', 'classifier', 'sample size', 'score mean', 'std error'],
+        return Table(['id', 'classifier', 'composer', 'sample size', 'score mean', 'std error'],
                      data,
                      'Performance at 500 training documents')
 
@@ -241,3 +302,14 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         rows = [row.split() for row in data[4:-1]]
 
         return Table(header, rows, desc)
+
+    @staticmethod
+    def plot_regression_line(ax, x, y, weights):
+        # copied here from thesisgenerator.scripts.plot
+        xs = np.linspace(min(x), max(x))
+        x1 = sm.add_constant(x)
+        model = sm.WLS(y, x1, weights=weights)
+        results = model.fit()
+        coef = results.params[::-1]  # statsmodels' linear equation is b+ax, numpy's is ax+b
+        ax.plot(xs, results.predict(sm.add_constant(xs)), 'r-')
+        return coef, results.rsquared, results.rsquared_adj

@@ -111,6 +111,10 @@ def populate_manually():
         '94,gigaw,MR,100,Baroni,AN_NN,dependencies,1',
         '95,gigaw,MR,100,APDT,AN_NN,dependencies,1',
         '96,-,MR,100,Socher,AN_NN,-,1',
+        '97,-,R2,-1,Random,AN_NN,-,0',
+        '98,-,MR,-1,Random,AN_NN,-,0',
+        '99,-,R2,-1,Signifier,AN_NN,-,0',
+        '100,-,MR,-1,Signifier,AN_NN,-,0',
     ]
     for line in table_descr:
         print line
@@ -185,19 +189,17 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     @staticmethod
     def get_r2_correlation_plot(exp_ids):
         print 'running r2 scatter'
-        with open('../thesisgenerator/figures/stats_output.txt') as infile:
-            txt = ''.join(infile.readlines())
 
-        # find which experiment a section of the log file relates to
-        logs = txt.split('INFO:\t\n\n\n')[1:]
-        logs = {int(re.search('DOING EXPERIMENT exp([0-9]+)-0', x).groups()[0]): x for x in logs}
+        logs = []
+        for n in exp_ids:
+            with open('gui/static/figures/stats_output%d.txt' % n) as infile:
+                logs.append(''.join(infile.readlines()))
 
-        rsquared = {k: float(re.search('R-squared:\s+([0-9\.]+)', v).groups()[0]) for k, v in logs.items()}
+        selected_r2 = [float(re.search('R-squared:\s+([0-9\.]+)', txt).groups()[0]) for txt in logs]
         # todo put this in database
 
-        selected_r2 = [rsquared[n] for n in exp_ids]
-        selected_f1 = [get_results_table(n).objects.
-                           values_list('score_mean', flat=True).filter(metric='macroavg_f1',
+        selected_acc = [get_results_table(n).objects.
+                           values_list('score_mean', flat=True).filter(metric='accuracy_score',
                                                                        classifier='MultinomialNB')[0] for n in exp_ids]
 
         fig = plt.Figure(dpi=100, facecolor='white')
@@ -206,18 +208,18 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         # do whatever magic is needed here
         coef, r2, r2adj = ThesisgeneratorExplosionAnalysis.plot_regression_line(ax,
                                                                                 np.array(selected_r2),
-                                                                                np.array(selected_f1),
-                                                                                np.ones(len(selected_f1)))
+                                                                                np.array(selected_acc),
+                                                                                np.ones(len(selected_acc)))
         composer_names = []
         for n in exp_ids:
             composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
             composer_names.append('%d-%s' % (n, composer_name))
-        ax.scatter(selected_r2, selected_f1)
+        ax.scatter(selected_r2, selected_acc)
         for i, txt in enumerate(composer_names):
-            ax.annotate(txt, (selected_r2[i], selected_f1[i]), fontsize='x-small')
+            ax.annotate(txt, (selected_r2[i], selected_acc[i]), fontsize='x-small')
 
         if len(coef) > 1:
-            fig.suptitle('R2 on class associations vs F1. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
+            fig.suptitle('R2 on class associations vs accuracy. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
         else:
             fig.suptitle('All x values are 0, cannot fit regression line')
 
@@ -234,7 +236,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         for n in exp_ids:
             composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
             for classifier in ['MultinomialNB']:
-                results = get_results_table(n).objects.all().filter(metric='macroavg_f1',
+                results = get_results_table(n).objects.all().filter(metric='accuracy_score',
                                                                     classifier=classifier,
                                                                     sample_size=sample_size)
                 if not results.exists():
@@ -242,11 +244,11 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                     print 'skipping table %d and classifier %s' % (n, classifier)
                     continue
 
-                size, f1, f1stderr = results[0].get_performance_info()
+                size, acc, acc_stderr = results[0].get_performance_info()
                 data.append([n, classifier, composer_name,
-                             sample_size, '{:.2%}'.format(f1), '{:.2%}'.format(f1stderr)])
+                             sample_size, '{:.2%}'.format(acc), '{:.2%}'.format(acc_stderr)])
 
-        return Table(['id', 'classifier', 'composer', 'sample size', 'score mean', 'std error'],
+        return Table(['id', 'classifier', 'composer', 'sample size', 'accuracy', 'std error'],
                      data,
                      'Performance at 500 training documents')
 
@@ -267,7 +269,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             # only at size 500
             outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
             df = pd.read_csv(outfile)
-            mask = df['classifier'].isin([classifier]) & df['metric'].isin(['macroavg_f1'])
+            mask = df['classifier'].isin([classifier]) & df['metric'].isin(['accuracy_score'])
             ordered_scores = df['score'][mask].tolist()
             data.append(ordered_scores)
 

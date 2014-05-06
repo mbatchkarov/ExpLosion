@@ -26,7 +26,7 @@ add_group = function() {
       d = $('#groups-div');
       d[0].className = "visible_div";
       d.html(data);
-      $(".table").tablesorter;
+      $(".table").tablesorter();
     }
   });
 };
@@ -38,7 +38,7 @@ clear_groups = function() {
       $('#groups-div').html("");
       $('#results-div').html("");
       $('#groups-div')[0].className = "invisible_div";
-      $(".table").tablesorter;
+      $(".table").tablesorter();
     }
   });
 };
@@ -49,7 +49,7 @@ toggle_duplicates = function() {
     success: function(data) {
       $('#groups-div').html(data);
       $('#groups-div')[0].className = "visible_div";
-      return $(".table").tablesorter;
+      return $(".table").tablesorter();
     }
   });
 };
@@ -59,7 +59,7 @@ analyze_selected_experiments = function() {
     url: "/analyse",
     success: function(data) {
       $("#results-div").html(data);
-      $(".table").tablesorter;
+      $(".table").tablesorter();
     }
   });
 };

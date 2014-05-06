@@ -26,11 +26,15 @@ def analyse(request, analyser=None):
         content = render_to_string('table.html', table.__dict__)
         response.write(content)
 
-    for img in analyser.get_figures(exp_ids):
+    for img in analyser.get_generated_figures(exp_ids):
         content = render_to_string('image.html', {'image': img})
         response.write(content)
 
+    for path in analyser.get_static_figures(exp_ids):
+        response.write('<img src="%s">' % path)
+
     return response
+
 
 @never_cache
 def show_current_selection(request, allow_pruning=False):
@@ -47,7 +51,7 @@ def show_current_selection(request, allow_pruning=False):
     table = Table(header, rows, desc)
 
     if allow_pruning:
-        prune = not request.session.get('prune_duplicates', False) # initially false
+        prune = not request.session.get('prune_duplicates', False)  # initially false
         request.session['prune_duplicates'] = prune
         if prune:
             table.prune()

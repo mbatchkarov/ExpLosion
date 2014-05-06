@@ -142,7 +142,7 @@ class BaseExplosionAnalysis(object):
         ]
 
     @staticmethod
-    def get_figures(exp_ids):
+    def get_generated_figures(exp_ids):
         base64_images = []
         for _ in range(2):
             fig = plt.Figure(dpi=100, facecolor='white')
@@ -157,6 +157,10 @@ class BaseExplosionAnalysis(object):
             base64_images.append(base64.b64encode(s.getvalue()))
         return base64_images
 
+    @staticmethod
+    def get_static_figures(exp_ids):
+        return ['static/img/test.jpg']
+
 
 class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     @staticmethod
@@ -166,22 +170,17 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
         ] if exp_ids else []
 
-
     @staticmethod
-    def get_figures(exp_ids):
-        # todo this takes too long, there must be a better way
-        # detailed_analysis = [ThesisgeneratorExplosionAnalysis.read_image_from_disk_to_base64(x) for x in exp_ids]
+    def get_static_figures(exp_ids):
         return [
-            ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids),
-            # detailed_analysis,
+            "static/figures/stats-exp%d-0.png" % n for n in exp_ids
         ] if exp_ids else []
 
-
     @staticmethod
-    def read_image_from_disk_to_base64(exp_id):
-        with open("../thesisgenerator/figures/stats-exp%d-0.png" % exp_id, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read())
-        return encoded_string
+    def get_generated_figures(exp_ids):
+        return [
+            ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids),
+        ] if exp_ids else []
 
     @staticmethod
     def get_r2_correlation_plot(exp_ids):

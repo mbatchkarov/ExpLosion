@@ -195,12 +195,29 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             with open('gui/static/figures/stats_output%d.txt' % n) as infile:
                 logs.append(''.join(infile.readlines()))
 
-        selected_r2 = [float(re.search('R-squared:\s+([0-9\.]+)', txt).groups()[0]) for txt in logs]
-        # todo put this in database
+        selected_r2 = []  # todo put this in database in advance?
+        for txt, n in zip(logs, exp_ids):
+            try:
+                r2 = float(re.search('R-squared:\s+([0-9\.]+)', txt).groups()[0])
+            except AttributeError:
+                # groups() fails if there isn't a match. This happens when the detailed offline analysis
+                # failed for some reason. Let's try and recover
+                composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
+                if composer_name == 'Random':
+                    # todo If f(x) is random, there shouldn't be any correlation between x and f(x). In this case,
+                    # for a given feature x and its log likelihood ratio, f(x) is the LLR of some other random feature.
+                    r2 = 0
+                elif composer_name == 'Signifier':
+                    # todo If f(x) = x, there shouldn't be perfect correlation between x and f(x). In this case,
+                    # the r2 metric should be 1.
+                    r2 = 1
+                else:
+                    raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
+            selected_r2.append(r2)
 
         selected_acc = [get_results_table(n).objects.
-                           values_list('score_mean', flat=True).filter(metric='accuracy_score',
-                                                                       classifier='MultinomialNB')[0] for n in exp_ids]
+                            values_list('score_mean', flat=True).filter(metric='accuracy_score',
+                                                                        classifier='MultinomialNB')[0] for n in exp_ids]
 
         fig = plt.Figure(dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
@@ -212,14 +229,15 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                                                                                 np.ones(len(selected_acc)))
         composer_names = []
         for n in exp_ids:
-            composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
+            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
             composer_names.append('%d-%s' % (n, composer_name))
         ax.scatter(selected_r2, selected_acc)
         for i, txt in enumerate(composer_names):
-            ax.annotate(txt, (selected_r2[i], selected_acc[i]), fontsize='x-small')
+            ax.annotate(txt, (selected_r2[i], selected_acc[i]), fontsize='xx-small', rotation=30)
 
         if len(coef) > 1:
-            fig.suptitle('R2 on class associations vs accuracy. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
+            fig.suptitle('R2 on class associations vs accuracy. '
+                         'y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
         else:
             fig.suptitle('All x values are 0, cannot fit regression line')
 
@@ -234,7 +252,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         data = []
         sample_size = 500
         for n in exp_ids:
-            composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
+            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
             for classifier in ['MultinomialNB']:
                 results = get_results_table(n).objects.all().filter(metric='accuracy_score',
                                                                     classifier=classifier,
@@ -261,7 +279,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         print 'Running significance for experiments %r' % exp_ids
         for n in exp_ids:
             # human-readable name
-            composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
+            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
             cv_folds = get_results_table(n).objects.values_list('cv_folds', flat=True)[0]
             composers.extend(['%d-%s' % (n, composer_name)] * cv_folds)
 
@@ -314,3 +332,8 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         coef = results.params[::-1]  # statsmodels' linear equation is b+ax, numpy's is ax+b
         ax.plot(xs, results.predict(sm.add_constant(xs)), 'r-')
         return coef, results.rsquared, results.rsquared_adj
+
+    @staticmethod
+    def get_composer_name(n):
+        composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
+        return composer_name

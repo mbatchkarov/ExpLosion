@@ -1,0 +1,13 @@
+/* A simplified version of tablesorter's green theme */
+table.tablesorter .header {
+	padding-left: 30px;
+	height: auto;
+}
+table.tablesorter .tablesorter-headerAsc{
+	background-image: url(asc.png);
+	background-repeat: no-repeat;
+}
+table.tablesorter .tablesorter-headerDesc {
+	background-image: url(desc.png);
+	background-repeat: no-repeat;
+}

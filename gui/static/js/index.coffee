@@ -49,3 +49,7 @@ analyze_selected_experiments = ->
             $(".table").tablesorter()
             return
     return
+
+$(document).ready(bla = ->
+    $('input:checkbox').bootstrapSwitch('size', 'mini')
+)

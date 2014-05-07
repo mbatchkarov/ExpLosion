@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import os
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.forms.models import model_to_dict
@@ -31,7 +32,7 @@ def analyse(request, analyser=None):
         response.write(content)
 
     for path in analyser.get_static_figures(exp_ids):
-        response.write('<img src="%s">' % path)
+        response.write('<br> %s <br> <img src="%s"><br>' % (os.path.basename(path), path))
 
     return response
 

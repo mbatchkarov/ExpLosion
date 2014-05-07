@@ -16,5 +16,6 @@ urlpatterns = patterns('',  # do not remove the first parameter
                        url(r'^clear_groups$', views.clear_groups),
                        url(r'^toggle_duplicates', views.show_current_selection, kwargs={'allow_pruning': True}),
                        url(r'^index$', views.index),
+                       url(r'^demo$', views.demo),
                        url(r'^$', views.index),
 )

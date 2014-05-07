@@ -19,6 +19,10 @@ def index(request):
     return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 
 
+def demo(request):
+    return render_to_response('demo.html')
+
+
 def analyse(request, analyser=None):
     response = HttpResponse()
 

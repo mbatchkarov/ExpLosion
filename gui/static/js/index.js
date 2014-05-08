@@ -2,7 +2,7 @@
 var add_group, analyze_selected_experiments, bla, clear_groups, toggle_duplicates;
 
 add_group = function() {
-  var box, checked_boxes, myurl, paramdiv, suffix, _i, _j, _len, _len1, _ref, _ref1;
+  var boxdiv, checked_boxes, myurl, paramdiv, suffix, _i, _j, _len, _len1, _ref, _ref1;
   checked_boxes = new Object();
   _ref = document.getElementById('form').children;
   for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -10,9 +10,9 @@ add_group = function() {
     checked_boxes[paramdiv.id] = [];
     _ref1 = paramdiv.children;
     for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-      box = _ref1[_j];
-      if (box.checked) {
-        checked_boxes[paramdiv.id].push(box.name);
+      boxdiv = _ref1[_j];
+      if (boxdiv.getElementsByTagName('input')[0].checked) {
+        checked_boxes[paramdiv.id].push(boxdiv.getElementsByTagName('input')[0].name);
       }
     }
   }

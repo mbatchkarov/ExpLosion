@@ -2,11 +2,11 @@ add_group = ->
     checked_boxes = new Object()
     for paramdiv in document.getElementById('form').children
         checked_boxes[paramdiv.id] = []
-        for box in paramdiv.children
-            if box.checked
-                checked_boxes[paramdiv.id].push(box.name)
-    suffix = jQuery.param checked_boxes
+        for boxdiv in paramdiv.children
+            if boxdiv.getElementsByTagName('input')[0].checked
+                checked_boxes[paramdiv.id].push(boxdiv.getElementsByTagName('input')[0].name)
 
+    suffix = jQuery.param checked_boxes
     suffix = "?".concat(suffix)
     myurl = "/add_group".concat(suffix)
     $.ajax(
@@ -18,7 +18,6 @@ add_group = ->
             $(".table").tablesorter()
             return
     )
-
     return
 
 clear_groups = ->

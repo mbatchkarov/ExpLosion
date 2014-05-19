@@ -182,23 +182,15 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
 
     @staticmethod
     def get_generated_figures(exp_ids):
-        return [
-            ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids),
-        ] if exp_ids else []
+        return ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids) if exp_ids else []
 
     @staticmethod
-    def get_r2_correlation_plot(exp_ids):
-        print 'running r2 scatter'
-
-        logs = []
-        for n in exp_ids:
-            with open('gui/static/figures/stats_output%d.txt' % n) as infile:
-                logs.append(''.join(infile.readlines()))
-
+    def _get_r2_from_log(exp_ids, logs):
         selected_r2 = []  # todo put this in database in advance?
         for txt, n in zip(logs, exp_ids):
             try:
-                r2 = float(re.search('R-squared:\s+([0-9\.]+)', txt).groups()[0])
+                # todo there's a better way to get this
+                r2 = float(re.search('R-squared of class-pull plot: ([0-9\.]+)', txt).groups()[0])
             except AttributeError:
                 # groups() fails if there isn't a match. This happens when the detailed offline analysis
                 # failed for some reason. Let's try and recover
@@ -212,32 +204,64 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                     # the r2 metric should be 1.
                     r2 = 1
                 else:
-                    raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
+                    # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
+                    print 'Detailed analysis of experiment %d failed, check output directory' % n
+                    r2 = 0
             selected_r2.append(r2)
+        return selected_r2
+
+    @staticmethod
+    def _get_SSE_from_log(exp_ids, logs):
+        selected_scores = []  # todo put this in database in advance?
+        for txt, n in zip(logs, exp_ids):
+            score = float(re.search('Sum-of-squares error compared to perfect diagonal = ([0-9\.]+)', txt).groups()[0])
+            selected_scores.append(score)
+        return selected_scores
+
+    @staticmethod
+    def get_r2_correlation_plot(exp_ids):
+        print 'running r2 scatter'
+
+        logs = []
+        for n in exp_ids:
+            with open('gui/static/figures/stats_output%d.txt' % n) as infile:
+                logs.append(''.join(infile.readlines()))
+
+        selected_r2 = ThesisgeneratorExplosionAnalysis._get_r2_from_log(exp_ids, logs)
+        selected_sse = ThesisgeneratorExplosionAnalysis._get_SSE_from_log(exp_ids, logs)
 
         selected_acc = [get_results_table(n).objects.
                             values_list('score_mean', flat=True).filter(metric='accuracy_score',
                                                                         classifier='MultinomialNB')[0] for n in exp_ids]
+        return ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_r2,
+                                                                        selected_acc,
+                                                                        exp_ids,
+                                                                        title='Normalised SSE from diagonal'), \
+               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_sse,
+                                                                        selected_acc,
+                                                                        exp_ids,
+                                                                        title='R2 of good feature LOR scatter plot'),
 
+    @staticmethod
+    def _plot_x_agains_accuracy(x, selected_acc, exp_ids, title=''):
         fig = plt.Figure(dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
         # do whatever magic is needed here
         coef, r2, r2adj = ThesisgeneratorExplosionAnalysis.plot_regression_line(ax,
-                                                                                np.array(selected_r2),
+                                                                                np.array(x),
                                                                                 np.array(selected_acc),
                                                                                 np.ones(len(selected_acc)))
         composer_names = []
         for n in exp_ids:
             composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
             composer_names.append('%d-%s' % (n, composer_name))
-        ax.scatter(selected_r2, selected_acc)
+        ax.scatter(x, selected_acc)
         for i, txt in enumerate(composer_names):
-            ax.annotate(txt, (selected_r2[i], selected_acc[i]), fontsize='xx-small', rotation=30)
+            ax.annotate(txt, (x[i], selected_acc[i]), fontsize='xx-small', rotation=30)
 
         if len(coef) > 1:
-            fig.suptitle('R2 on class associations vs accuracy. '
-                         'y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
+            fig.suptitle('%s. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (title, coef[0], coef[1], r2, r2adj))
         else:
             fig.suptitle('All x values are 0, cannot fit regression line')
 

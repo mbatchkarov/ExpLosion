@@ -26,7 +26,7 @@ def demo(request):
 def analyse(request, analyser=None):
     response = HttpResponse()
 
-    exp_ids = request.session['groups']
+    exp_ids = request.session.get('groups', [])
     for table in analyser.get_tables(exp_ids):
         content = render_to_string('table.html', table.__dict__)
         response.write(content)

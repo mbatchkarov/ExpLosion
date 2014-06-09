@@ -166,11 +166,11 @@ class BaseExplosionAnalysis(object):
         return ['static/img/test.jpg']
 
 
-class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
+class Thesisgen(BaseExplosionAnalysis):
     @staticmethod
     def get_tables(exp_ids):
         return [
-            ThesisgeneratorExplosionAnalysis.get_performance_table(exp_ids),
+            Thesisgen.get_performance_table(exp_ids),
             # ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
         ] if exp_ids else []
 
@@ -182,7 +182,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
 
     @staticmethod
     def get_generated_figures(exp_ids):
-        return ThesisgeneratorExplosionAnalysis.get_r2_correlation_plot(exp_ids) if exp_ids else []
+        return Thesisgen.get_r2_correlation_plot(exp_ids) if exp_ids else []
 
     @staticmethod
     def _get_r2_from_log(exp_ids, logs):
@@ -195,7 +195,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             except AttributeError:
                 # groups() fails if there isn't a match. This happens when the detailed offline analysis
                 # failed for some reason. Let's try and recover
-                composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
+                composer_name = Thesisgen.get_composer_name(n)
                 if composer_name == 'Random':
                     # todo If f(x) is random, there shouldn't be any correlation between x and f(x). In this case,
                     # for a given feature x and its log likelihood ratio, f(x) is the LLR of some other random feature.
@@ -227,11 +227,11 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         return selected_scores
 
     @staticmethod
-    def _get_wrong_quadrant_pct(exp_ids, logs, weighted='weighted'):
+    def _get_wrong_quadrant_pct(exp_ids, logs, weighted):
         selected_scores = []
         for txt, n in zip(logs, exp_ids):
             try:
-                score = re.search('([0-9/]+) data points are in the wrong quadrant \(%s\)' % weighted, txt).groups()[0]
+                score = re.search('([0-9/\.]+) data points are in the wrong quadrant \(%s\)' % weighted, txt).groups()[0]
                 score = score.split('/')
                 selected_scores.append(float(score[0]) / float(score[1]))
             except AttributeError:
@@ -247,12 +247,8 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             with open('gui/static/figures/stats_output%d.txt' % n) as infile:
                 logs.append(''.join(infile.readlines()))
 
-        selected_r2 = ThesisgeneratorExplosionAnalysis._get_r2_from_log(exp_ids, logs)
-        selected_sse = ThesisgeneratorExplosionAnalysis._get_SSE_from_log(exp_ids, logs)
-        selected_wrong_quadrant_w = ThesisgeneratorExplosionAnalysis._get_wrong_quadrant_pct(exp_ids, logs)
-        selected_wrong_quadrant_unw = ThesisgeneratorExplosionAnalysis._get_wrong_quadrant_pct(exp_ids, logs,
-                                                                                               weighted='unweighted')
-
+        selected_r2 = Thesisgen._get_r2_from_log(exp_ids, logs)
+        selected_sse = Thesisgen._get_SSE_from_log(exp_ids, logs)
         selected_acc = []
         acc_err = []
         for n in exp_ids:
@@ -261,26 +257,44 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
             selected_acc.append(score_mean)
             acc_err.append(score_std)
 
-        return ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_sse,
-                                                                        selected_acc,
-                                                                        acc_err,
-                                                                        exp_ids,
-                                                                        title='Normalised SSE from diagonal'), \
-               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_r2,
-                                                                        selected_acc,
-                                                                        acc_err,
-                                                                        exp_ids,
-                                                                        title='R2 of good feature LOR scatter plot'), \
-               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_wrong_quadrant_w,
-                                                                        selected_acc,
-                                                                        acc_err,
-                                                                        exp_ids,
-                                                                        title='Pct in wrong quadrant (weighted)'),\
-               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_wrong_quadrant_unw,
-                                                                        selected_acc,
-                                                                        acc_err,
-                                                                        exp_ids,
-                                                                        title='Pct in wrong quadrant (unweighted)')
+        return Thesisgen._plot_x_agains_accuracy(selected_sse,
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Normalised SSE from diagonal'), \
+               Thesisgen._plot_x_agains_accuracy(selected_r2,
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='R2 of good feature LOR scatter plot'), \
+               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'unweighted'),
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Pct in wrong quadrant (unweighted)'), \
+               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'weighted by freq'),
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Pct in wrong quadrant (weighted by freq)'), \
+               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'weighted by sim'),
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Pct in wrong quadrant (weighted by sim)'), \
+               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids,
+                                                                                   logs, 'weighted by sim and freq'),
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Pct in wrong quadrant (weighted by sim and freq)'), \
+               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs,
+                                                                                   'weighted by seriousness, '
+                                                                                   'sim and freq'),
+                                                 selected_acc,
+                                                 acc_err,
+                                                 exp_ids,
+                                                 title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
 
     @staticmethod
     def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
@@ -288,14 +302,14 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         ax = fig.add_subplot(111)
 
         # do whatever magic is needed here
-        coef, r2, r2adj = ThesisgeneratorExplosionAnalysis.plot_regression_line(ax,
-                                                                                np.array(x),
-                                                                                np.array(selected_acc),
-                                                                                np.ones(len(selected_acc)))
+        coef, r2, r2adj = Thesisgen.plot_regression_line(ax,
+                                                         np.array(x),
+                                                         np.array(selected_acc),
+                                                         np.ones(len(selected_acc)))
         ax.errorbar(x, selected_acc, yerr=acc_err, capsize=0, ls='none')
         composer_names = []
         for n in exp_ids:
-            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
+            composer_name = Thesisgen.get_composer_name(n)
             composer_names.append('%d-%s' % (n, composer_name))
         ax.scatter(x, selected_acc)
         for i, txt in enumerate(composer_names):
@@ -317,7 +331,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         data = []
         sample_size = 500
         for n in exp_ids:
-            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
+            composer_name = Thesisgen.get_composer_name(n)
             for classifier in ['MultinomialNB']:
                 results = get_results_table(n).objects.all().filter(metric='accuracy_score',
                                                                     classifier=classifier,
@@ -344,7 +358,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
         print 'Running significance for experiments %r' % exp_ids
         for n in exp_ids:
             # human-readable name
-            composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)
+            composer_name = Thesisgen.get_composer_name(n)
             cv_folds = get_results_table(n).objects.values_list('cv_folds', flat=True)[0]
             composers.extend(['%d-%s' % (n, composer_name)] * cv_folds)
 

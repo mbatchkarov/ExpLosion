@@ -6,7 +6,7 @@ from gui.user_code import *
 
 
 # analyser = BaseExplosionAnalysis()
-analyser = ThesisgeneratorExplosionAnalysis()
+analyser = Thesisgen()
 analyser.populate_experiments_db()
 
 admin.autodiscover()

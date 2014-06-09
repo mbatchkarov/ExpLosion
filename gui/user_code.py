@@ -171,7 +171,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     def get_tables(exp_ids):
         return [
             ThesisgeneratorExplosionAnalysis.get_performance_table(exp_ids),
-            ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
+            # ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
         ] if exp_ids else []
 
     @staticmethod
@@ -187,6 +187,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     @staticmethod
     def _get_r2_from_log(exp_ids, logs):
         selected_r2 = []  # todo put this in database in advance?
+        failed_experiments = set()
         for txt, n in zip(logs, exp_ids):
             try:
                 # todo there's a better way to get this
@@ -207,6 +208,9 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                     # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
                     print 'Detailed analysis of experiment %d failed, check output directory' % n
                     r2 = 0
+                    # failed_experiments.add(n)
+                    # continue
+                    # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
             selected_r2.append(r2)
         return selected_r2
 
@@ -214,8 +218,24 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
     def _get_SSE_from_log(exp_ids, logs):
         selected_scores = []  # todo put this in database in advance?
         for txt, n in zip(logs, exp_ids):
-            score = float(re.search('Sum-of-squares error compared to perfect diagonal = ([0-9\.]+)', txt).groups()[0])
+            try:
+                score = float(
+                    re.search('Sum-of-squares error compared to perfect diagonal = ([0-9\.]+)', txt).groups()[0])
+            except AttributeError:
+                score = 0
             selected_scores.append(score)
+        return selected_scores
+
+    @staticmethod
+    def _get_wrong_quadrant_pct(exp_ids, logs, weighted='weighted'):
+        selected_scores = []
+        for txt, n in zip(logs, exp_ids):
+            try:
+                score = re.search('([0-9/]+) data points are in the wrong quadrant \(%s\)' % weighted, txt).groups()[0]
+                score = score.split('/')
+                selected_scores.append(float(score[0]) / float(score[1]))
+            except AttributeError:
+                selected_scores.append(0)
         return selected_scores
 
     @staticmethod
@@ -229,21 +249,41 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
 
         selected_r2 = ThesisgeneratorExplosionAnalysis._get_r2_from_log(exp_ids, logs)
         selected_sse = ThesisgeneratorExplosionAnalysis._get_SSE_from_log(exp_ids, logs)
+        selected_wrong_quadrant_w = ThesisgeneratorExplosionAnalysis._get_wrong_quadrant_pct(exp_ids, logs)
+        selected_wrong_quadrant_unw = ThesisgeneratorExplosionAnalysis._get_wrong_quadrant_pct(exp_ids, logs,
+                                                                                               weighted='unweighted')
 
-        selected_acc = [get_results_table(n).objects.
-                            values_list('score_mean', flat=True).filter(metric='accuracy_score',
-                                                                        classifier='MultinomialNB')[0] for n in exp_ids]
-        return ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_r2,
+        selected_acc = []
+        acc_err = []
+        for n in exp_ids:
+            sample_size, score_mean, score_std = get_results_table(n).objects.all().filter(classifier='MultinomialNB')[
+                0].get_performance_info()
+            selected_acc.append(score_mean)
+            acc_err.append(score_std)
+
+        return ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_sse,
                                                                         selected_acc,
+                                                                        acc_err,
                                                                         exp_ids,
                                                                         title='Normalised SSE from diagonal'), \
-               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_sse,
+               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_r2,
                                                                         selected_acc,
+                                                                        acc_err,
                                                                         exp_ids,
-                                                                        title='R2 of good feature LOR scatter plot'),
+                                                                        title='R2 of good feature LOR scatter plot'), \
+               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_wrong_quadrant_w,
+                                                                        selected_acc,
+                                                                        acc_err,
+                                                                        exp_ids,
+                                                                        title='Pct in wrong quadrant (weighted)'),\
+               ThesisgeneratorExplosionAnalysis._plot_x_agains_accuracy(selected_wrong_quadrant_unw,
+                                                                        selected_acc,
+                                                                        acc_err,
+                                                                        exp_ids,
+                                                                        title='Pct in wrong quadrant (unweighted)')
 
     @staticmethod
-    def _plot_x_agains_accuracy(x, selected_acc, exp_ids, title=''):
+    def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
         fig = plt.Figure(dpi=100, facecolor='white')
         ax = fig.add_subplot(111)
 
@@ -252,6 +292,7 @@ class ThesisgeneratorExplosionAnalysis(BaseExplosionAnalysis):
                                                                                 np.array(x),
                                                                                 np.array(selected_acc),
                                                                                 np.ones(len(selected_acc)))
+        ax.errorbar(x, selected_acc, yerr=acc_err, capsize=0, ls='none')
         composer_names = []
         for n in exp_ids:
             composer_name = ThesisgeneratorExplosionAnalysis.get_composer_name(n)

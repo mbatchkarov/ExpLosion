@@ -11,6 +11,9 @@ import statsmodels.api as sm
 
 from gui.models import Experiment, Table, get_results_table
 
+CLASSIFIER = 'MultinomialNB'
+METRIC = 'macroavg_f1'
+
 
 def populate_manually():
     # run manually in django console to populate the database
@@ -252,8 +255,8 @@ class Thesisgen(BaseExplosionAnalysis):
         selected_acc = []
         acc_err = []
         for n in exp_ids:
-            sample_size, score_mean, score_std = get_results_table(n).objects.all().filter(classifier='MultinomialNB')[
-                0].get_performance_info()
+            sample_size, score_mean, score_std = get_results_table(n).objects.all().\
+                filter(classifier=CLASSIFIER, metric=METRIC)[0].get_performance_info()
             selected_acc.append(score_mean)
             acc_err.append(score_std)
 
@@ -316,9 +319,11 @@ class Thesisgen(BaseExplosionAnalysis):
             ax.annotate(txt, (x[i], selected_acc[i]), fontsize='xx-small', rotation=30)
 
         if len(coef) > 1:
-            fig.suptitle('%s. y=%.2fx%+.2f; r2=%.2f(%.2f)' % (title, coef[0], coef[1], r2, r2adj))
+            fig.suptitle('y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
         else:
             fig.suptitle('All x values are 0, cannot fit regression line')
+        ax.set_xlabel(title)
+        ax.set_ylabel(METRIC)
 
         canvas = FigureCanvas(fig)
         s = StringIO()
@@ -332,20 +337,19 @@ class Thesisgen(BaseExplosionAnalysis):
         sample_size = 500
         for n in exp_ids:
             composer_name = Thesisgen.get_composer_name(n)
-            for classifier in ['MultinomialNB']:
-                results = get_results_table(n).objects.all().filter(metric='accuracy_score',
-                                                                    classifier=classifier,
-                                                                    sample_size=sample_size)
-                if not results.exists():
-                    # table or result does not exist
-                    print 'skipping table %d and classifier %s' % (n, classifier)
-                    continue
+            results = get_results_table(n).objects.all().filter(metric=METRIC,
+                                                                classifier=CLASSIFIER,
+                                                                sample_size=sample_size)
+            if not results.exists():
+                # table or result does not exist
+                print 'skipping table %d and classifier %s' % (n, CLASSIFIER)
+                continue
 
-                size, acc, acc_stderr = results[0].get_performance_info()
-                data.append([n, classifier, composer_name,
-                             sample_size, '{:.2%}'.format(acc), '{:.2%}'.format(acc_stderr)])
+            size, acc, acc_stderr = results[0].get_performance_info()
+            data.append([n, CLASSIFIER, composer_name,
+                         sample_size, '{:.2%}'.format(acc), '{:.2%}'.format(acc_stderr)])
 
-        return Table(['id', 'classifier', 'composer', 'sample size', 'accuracy', 'std error'],
+        return Table(['id', 'classifier', 'composer', 'sample size', METRIC, 'std error'],
                      data,
                      'Performance at 500 training documents')
 
@@ -366,7 +370,7 @@ class Thesisgen(BaseExplosionAnalysis):
             # only at size 500
             outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
             df = pd.read_csv(outfile)
-            mask = df['classifier'].isin([classifier]) & df['metric'].isin(['accuracy_score'])
+            mask = df['classifier'].isin([classifier]) & df['metric'].isin([METRIC])
             ordered_scores = df['score'][mask].tolist()
             data.append(ordered_scores)
 

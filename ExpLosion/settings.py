@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 from os import environ
+from configobj import ConfigObj
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -67,13 +68,14 @@ WSGI_APPLICATION = 'ExpLosion.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
+config = ConfigObj('./db-credentials')
 DATABASES = {
     'default': {
         'ENGINE':'django.db.backends.mysql',
-        'NAME': 'bov-data',
-        'USER': get_env_setting('DB_USER'),
-        'PASSWORD': get_env_setting('DB_PASSWORD'),
-        'HOST': get_env_setting('DB_HOST'),
+        'NAME': config['db'],
+        'USER': config['user'],
+        'PASSWORD': config['pass'],
+        'HOST': config['server'],
         'PORT': '3306',
     }
 }

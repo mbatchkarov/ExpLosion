@@ -12,6 +12,9 @@ class Experiment(models.Model):
     svd = models.IntegerField()
     document_features = models.CharField(max_length=100)
     baronified = models.IntegerField()
+    use_similarity = models.IntegerField()
+    use_random_neighbours = models.IntegerField()
+    decode_handler = models.CharField(max_length=100)
 
     def __unicode__(self):
         return 'exp{}:{}-{}-{},{}-{},{}'.format(self.id, self.unlabelled, self.svd, self.thesaurus_features[:3],

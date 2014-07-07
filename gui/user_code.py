@@ -18,6 +18,7 @@ METRIC = 'macroavg_f1'
 def populate_manually():
     # run manually in django console to populate the database
     table_descr = [
+        '1,-,R2,-1,Random,AN_NN,-,0,1,1,SignifiedOnlyFeatureHandler',
         '2,-,R2,-1,Signifier,AN_NN,-,0,1,0,BaseFeatureHandler',
         '3,-,MR,-1,Random,AN_NN,-,0,1,1,SignifiedOnlyFeatureHandler',
         '4,-,MR,-1,Signifier,AN_NN,-,0,1,0,BaseFeatureHandler',

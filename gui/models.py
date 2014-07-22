@@ -34,7 +34,7 @@ def get_results_table(param):
         def __new__(cls, name, bases, attrs):
             return models.base.ModelBase.__new__(cls, 'data%d' % param, bases, attrs)
 
-    class ThesisgeneratorPerformanceResult(models.Model):
+    class ThesisgeneratorPerformanceResult(models.Model, metaclass=MyClassMetaclass):
         __metaclass__ = MyClassMetaclass
 
         id = models.AutoField(primary_key=True)

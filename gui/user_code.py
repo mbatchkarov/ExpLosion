@@ -1,4 +1,4 @@
-from cStringIO import StringIO
+from io import BytesIO
 import base64
 import re
 
@@ -12,7 +12,7 @@ import statsmodels.api as sm
 from gui.models import Experiment, Table, get_results_table
 
 CLASSIFIER = 'MultinomialNB'
-METRIC = 'macroavg_f1'
+METRIC = 'accuracy_score'
 
 
 def populate_manually():
@@ -146,9 +146,17 @@ def populate_manually():
         '126,neuro,MR,100,Mult,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
         '127,neuro,MR,100,Left,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
         '128,neuro,MR,100,Right,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
+        '129,word2vec,R2,100,Add,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '130,word2vec,R2,100,Mult,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '131,word2vec,R2,100,Left,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '132,word2vec,R2,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '133,word2vec,MR,100,Add,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '134,word2vec,MR,100,Mult,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '135,word2vec,MR,100,Left,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
+        '136,word2vec,MR,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
     ]
     for line in table_descr:
-        print line
+        print(line)
         num, unlab, lab, svd, comp, doc_feats, thes_feats, baronified, \
         use_similarity, use_random_neighbours, decode_handler = line.split(',')
         exp = Experiment(id=num, composer=comp, labelled=lab,
@@ -191,7 +199,7 @@ class BaseExplosionAnalysis(object):
             ax.plot(range(10))
 
             canvas = FigureCanvas(fig)
-            s = StringIO()
+            s = BytesIO()
             canvas.print_png(s)
             base64_images.append(base64.b64encode(s.getvalue()))
         return base64_images
@@ -241,7 +249,7 @@ class Thesisgen(BaseExplosionAnalysis):
                     r2 = 1
                 else:
                     # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
-                    print 'Detailed analysis of experiment %d failed, check output directory' % n
+                    print('Detailed analysis of experiment %d failed, check output directory' % n)
                     r2 = 0
                     # failed_experiments.add(n)
                     # continue
@@ -276,15 +284,15 @@ class Thesisgen(BaseExplosionAnalysis):
 
     @staticmethod
     def get_r2_correlation_plot(exp_ids):
-        print 'running r2 scatter'
+        print('running r2 scatter')
 
         logs = []
         for n in exp_ids:
             with open('gui/static/figures/stats_output%d.txt' % n) as infile:
                 logs.append(''.join(infile.readlines()))
 
-        selected_r2 = Thesisgen._get_r2_from_log(exp_ids, logs)
-        selected_sse = Thesisgen._get_SSE_from_log(exp_ids, logs)
+        # selected_r2 = Thesisgen._get_r2_from_log(exp_ids, logs)
+        # selected_sse = Thesisgen._get_SSE_from_log(exp_ids, logs)
         selected_acc = []
         acc_err = []
         for n in exp_ids:
@@ -293,17 +301,18 @@ class Thesisgen(BaseExplosionAnalysis):
             selected_acc.append(score_mean)
             acc_err.append(score_std)
 
-        return Thesisgen._plot_x_agains_accuracy(selected_sse,
-                                                 selected_acc,
-                                                 acc_err,
-                                                 exp_ids,
-                                                 title='Normalised SSE from diagonal'), \
-               Thesisgen._plot_x_agains_accuracy(selected_r2,
-                                                 selected_acc,
-                                                 acc_err,
-                                                 exp_ids,
-                                                 title='R2 of good feature LOR scatter plot'), \
-               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'unweighted'),
+            # return \
+            # Thesisgen._plot_x_agains_accuracy(selected_sse,
+            # selected_acc,
+            #                                   acc_err,
+            #                                   exp_ids,
+            #                                   title='Normalised SSE from diagonal'), \
+            # Thesisgen._plot_x_agains_accuracy(selected_r2,
+            #                                   selected_acc,
+            #                                   acc_err,
+            #                                   exp_ids,
+            #                                   title='R2 of good feature LOR scatter plot'), \
+        return Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'unweighted'),
                                                  selected_acc,
                                                  acc_err,
                                                  exp_ids,
@@ -324,13 +333,13 @@ class Thesisgen(BaseExplosionAnalysis):
                                                  acc_err,
                                                  exp_ids,
                                                  title='Pct in wrong quadrant (weighted by sim and freq)'), \
-               Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs,
-                                                                                   'weighted by seriousness, '
-                                                                                   'sim and freq'),
-                                                 selected_acc,
-                                                 acc_err,
-                                                 exp_ids,
-                                                 title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
+            # Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs,
+        # 'weighted by seriousness, '
+        #                                                                     'sim and freq'),
+        #                                   selected_acc,
+        #                                   acc_err,
+        #                                   exp_ids,
+        #                                   title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
 
     @staticmethod
     def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
@@ -357,15 +366,16 @@ class Thesisgen(BaseExplosionAnalysis):
             fig.suptitle('All x values are 0, cannot fit regression line')
         ax.set_xlabel(title)
         ax.set_ylabel(METRIC)
+        ax.axhline(y=0.5, linestyle='--', color='0.75')
 
         canvas = FigureCanvas(fig)
-        s = StringIO()
+        s = BytesIO()
         canvas.print_png(s)
         return base64.b64encode(s.getvalue())
 
     @staticmethod
     def get_performance_table(exp_ids):
-        print 'running performance query'
+        print('running performance query')
         data = []
         sample_size = 500
         for n in exp_ids:
@@ -375,7 +385,7 @@ class Thesisgen(BaseExplosionAnalysis):
                                                                 sample_size=sample_size)
             if not results.exists():
                 # table or result does not exist
-                print 'skipping table %d and classifier %s' % (n, CLASSIFIER)
+                print('skipping table %d and classifier %s' % (n, CLASSIFIER))
                 continue
 
             size, acc, acc_stderr = results[0].get_performance_info()
@@ -392,7 +402,7 @@ class Thesisgen(BaseExplosionAnalysis):
         data = []
         composers = []
 
-        print 'Running significance for experiments %r' % exp_ids
+        print('Running significance for experiments %r' % exp_ids)
         for n in exp_ids:
             # human-readable name
             composer_name = Thesisgen.get_composer_name(n)

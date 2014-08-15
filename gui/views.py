@@ -15,7 +15,12 @@ def index(request):
     valid_fields = {}
     # field -> all values it has in the database
     for column_name in data.keys():
-        valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
+        if column_name == 'labelled':
+            all_values = Experiment.objects.values_list(column_name, flat=True)
+            acceptable_values = set(x if len(x) < 5 else 'TECH' for x in all_values)  # what a hack!
+            valid_fields[column_name] = acceptable_values
+        else:
+            valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
     return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 
 
@@ -35,8 +40,8 @@ def analyse(request, analyser=None):
         content = render_to_string('image.html', {'image': img})
         response.write(content)
 
-    for path in analyser.get_static_figures(exp_ids):
-        response.write('<br> %s <br> <img src="%s"><br>' % (os.path.basename(path), path))
+    # for path in analyser.get_static_figures(exp_ids):
+    #     response.write('<br> %s <br> <img src="%s"><br>' % (os.path.basename(path), path))
 
     return response
 

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
+from critical_difference.plot import graph_ranks, print_figure
 
 from gui.models import Experiment, Table, get_results_table
 
@@ -17,144 +18,11 @@ METRIC = 'accuracy_score'
 
 def populate_manually():
     # run manually in django console to populate the database
-    table_descr = [
-        '1,-,R2,-1,Random,AN_NN,-,0,1,1,SignifiedOnlyFeatureHandler',
-        '2,-,R2,-1,Signifier,AN_NN,-,0,1,0,BaseFeatureHandler',
-        '3,-,MR,-1,Random,AN_NN,-,0,1,1,SignifiedOnlyFeatureHandler',
-        '4,-,MR,-1,Signifier,AN_NN,-,0,1,0,BaseFeatureHandler',
-        '5,gigaw,R2,0,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '6,gigaw,R2,0,Mult,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '7,gigaw,R2,0,Left,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '8,gigaw,R2,0,Right,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '9,gigaw,R2,0,Observed,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '10,gigaw,R2,0,APDT,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '11,gigaw,R2,100,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '12,gigaw,R2,100,Mult,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '13,gigaw,R2,100,Left,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '14,gigaw,R2,100,Right,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '15,gigaw,R2,100,Baroni,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '16,gigaw,R2,100,Observed,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '17,gigaw,R2,100,APDT,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '18,gigaw,MR,0,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '19,gigaw,MR,0,Mult,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '20,gigaw,MR,0,Left,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '21,gigaw,MR,0,Right,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '22,gigaw,MR,0,Observed,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '23,gigaw,MR,0,APDT,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '24,gigaw,MR,100,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '25,gigaw,MR,100,Mult,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '26,gigaw,MR,100,Left,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '27,gigaw,MR,100,Right,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '28,gigaw,MR,100,Baroni,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '29,gigaw,MR,100,Observed,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '30,gigaw,MR,100,APDT,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '31,gigaw,R2,0,Add,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '32,gigaw,R2,0,Mult,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '33,gigaw,R2,0,Left,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '34,gigaw,R2,0,Right,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '35,gigaw,R2,0,Observed,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '36,gigaw,R2,100,Add,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '37,gigaw,R2,100,Mult,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '38,gigaw,R2,100,Left,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '39,gigaw,R2,100,Right,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '40,gigaw,R2,100,Baroni,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '41,gigaw,R2,100,Observed,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '42,gigaw,MR,0,Add,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '43,gigaw,MR,0,Mult,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '44,gigaw,MR,0,Left,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '45,gigaw,MR,0,Right,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '46,gigaw,MR,0,Observed,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '47,gigaw,MR,100,Add,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '48,gigaw,MR,100,Mult,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '49,gigaw,MR,100,Left,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '50,gigaw,MR,100,Right,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '51,gigaw,MR,100,Baroni,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '52,gigaw,MR,100,Observed,AN_NN,windows,0,1,0,SignifiedOnlyFeatureHandler',
-        '53,neuro,R2,100,Socher,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '54,neuro,MR,100,Socher,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '55,gigaw,R2,0,Add,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '56,gigaw,R2,0,Mult,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '57,gigaw,R2,0,Left,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '58,gigaw,R2,0,Right,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '59,gigaw,R2,0,Observed,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '60,gigaw,R2,0,APDT,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '61,gigaw,R2,100,Add,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '62,gigaw,R2,100,Mult,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '63,gigaw,R2,100,Left,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '64,gigaw,R2,100,Right,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '65,gigaw,R2,100,Baroni,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '66,gigaw,R2,100,Observed,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '67,gigaw,R2,100,APDT,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '68,gigaw,MR,0,Add,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '69,gigaw,MR,0,Mult,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '70,gigaw,MR,0,Left,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '71,gigaw,MR,0,Right,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '72,gigaw,MR,0,Observed,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '73,gigaw,MR,0,APDT,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '74,gigaw,MR,100,Add,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '75,gigaw,MR,100,Mult,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '76,gigaw,MR,100,Left,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '77,gigaw,MR,100,Right,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '78,gigaw,MR,100,Baroni,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '79,gigaw,MR,100,Observed,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '80,gigaw,MR,100,APDT,AN_NN,dependencies,0,0,0,SignifiedOnlyFeatureHandler',
-        '81,gigaw,R2,0,Add,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '82,gigaw,R2,0,Mult,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '83,gigaw,R2,0,Left,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '84,gigaw,R2,0,Right,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '85,gigaw,R2,0,Observed,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '86,gigaw,R2,100,Add,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '87,gigaw,R2,100,Mult,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '88,gigaw,R2,100,Left,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '89,gigaw,R2,100,Right,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '90,gigaw,R2,100,Baroni,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '91,gigaw,R2,100,Observed,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '92,gigaw,MR,0,Add,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '93,gigaw,MR,0,Mult,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '94,gigaw,MR,0,Left,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '95,gigaw,MR,0,Right,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '96,gigaw,MR,0,Observed,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '97,gigaw,MR,100,Add,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '98,gigaw,MR,100,Mult,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '99,gigaw,MR,100,Left,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '100,gigaw,MR,100,Right,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '101,gigaw,MR,100,Baroni,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '102,gigaw,MR,100,Observed,AN_NN,windows,0,0,0,SignifiedOnlyFeatureHandler',
-        '103,neuro,R2,100,Socher,AN_NN,neuro,0,0,0,SignifiedOnlyFeatureHandler',
-        '104,neuro,MR,100,Socher,AN_NN,neuro,0,0,0,SignifiedOnlyFeatureHandler',
-        '105,gigaw,R2,100,Add,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '106,gigaw,R2,100,Mult,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '107,gigaw,R2,100,Left,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '108,gigaw,R2,100,Right,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '109,gigaw,R2,100,Baroni,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '110,gigaw,R2,100,Observed,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '111,gigaw,R2,100,APDT,AN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '112,neuro,R2,100,Socher,AN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '113,gigaw,R2,100,Add,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '114,gigaw,R2,100,Mult,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '115,gigaw,R2,100,Left,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '116,gigaw,R2,100,Right,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '117,gigaw,R2,100,Baroni,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '118,gigaw,R2,100,Observed,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '119,gigaw,R2,100,APDT,NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler',
-        '120,neuro,R2,100,Socher,NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '121,neuro,R2,100,Add,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '122,neuro,R2,100,Mult,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '123,neuro,R2,100,Left,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '124,neuro,R2,100,Right,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '125,neuro,MR,100,Add,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '126,neuro,MR,100,Mult,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '127,neuro,MR,100,Left,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '128,neuro,MR,100,Right,AN_NN,neuro,0,1,0,SignifiedOnlyFeatureHandler',
-        '129,word2vec,R2,100,Add,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '130,word2vec,R2,100,Mult,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '131,word2vec,R2,100,Left,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '132,word2vec,R2,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '133,word2vec,MR,100,Add,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '134,word2vec,MR,100,Mult,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '135,word2vec,MR,100,Left,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-        '136,word2vec,MR,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
-    ]
+
+    with open('experiments.txt') as infile:
+        table_descr = [eval(x)[0] for x in infile.readlines()]
+    # '5,gigaw,R2,0,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler' ,
+    # '136,word2vec,MR,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
     for line in table_descr:
         print(line)
         num, unlab, lab, svd, comp, doc_feats, thes_feats, baronified, \
@@ -214,18 +82,19 @@ class Thesisgen(BaseExplosionAnalysis):
     def get_tables(exp_ids):
         return [
             Thesisgen.get_performance_table(exp_ids),
-            # ThesisgeneratorExplosionAnalysis.get_significance_table(exp_ids),
+            Thesisgen.get_significance_table(exp_ids)[0],
         ] if exp_ids else []
 
     @staticmethod
     def get_static_figures(exp_ids):
-        return [
-            "static/figures/stats-exp%d-0.png" % n for n in exp_ids
-        ] if exp_ids else []
+        # return [
+        # "static/figures/stats-exp%d-0.png" % n for n in exp_ids
+        # ] if exp_ids else []
+        return []
 
     @staticmethod
     def get_generated_figures(exp_ids):
-        return Thesisgen.get_r2_correlation_plot(exp_ids) if exp_ids else []
+        return [Thesisgen.get_demsar_diagram(exp_ids)] if exp_ids else []  # Thesisgen.get_r2_correlation_plot(exp_ids)
 
     @staticmethod
     def _get_r2_from_log(exp_ids, logs):
@@ -304,14 +173,14 @@ class Thesisgen(BaseExplosionAnalysis):
             # return \
             # Thesisgen._plot_x_agains_accuracy(selected_sse,
             # selected_acc,
-            #                                   acc_err,
-            #                                   exp_ids,
-            #                                   title='Normalised SSE from diagonal'), \
+            # acc_err,
+            # exp_ids,
+            # title='Normalised SSE from diagonal'), \
             # Thesisgen._plot_x_agains_accuracy(selected_r2,
-            #                                   selected_acc,
-            #                                   acc_err,
-            #                                   exp_ids,
-            #                                   title='R2 of good feature LOR scatter plot'), \
+            # selected_acc,
+            # acc_err,
+            # exp_ids,
+            # title='R2 of good feature LOR scatter plot'), \
         return Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs, 'unweighted'),
                                                  selected_acc,
                                                  acc_err,
@@ -335,11 +204,18 @@ class Thesisgen(BaseExplosionAnalysis):
                                                  title='Pct in wrong quadrant (weighted by sim and freq)'), \
             # Thesisgen._plot_x_agains_accuracy(Thesisgen._get_wrong_quadrant_pct(exp_ids, logs,
         # 'weighted by seriousness, '
-        #                                                                     'sim and freq'),
-        #                                   selected_acc,
-        #                                   acc_err,
-        #                                   exp_ids,
-        #                                   title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
+        # 'sim and freq'),
+        # selected_acc,
+        # acc_err,
+        # exp_ids,
+        # title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
+
+    @staticmethod
+    def figure_to_base64(fig):
+        canvas = FigureCanvas(fig)
+        s = BytesIO()
+        canvas.print_png(s)
+        return base64.b64encode(s.getvalue())
 
     @staticmethod
     def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
@@ -367,11 +243,39 @@ class Thesisgen(BaseExplosionAnalysis):
         ax.set_xlabel(title)
         ax.set_ylabel(METRIC)
         ax.axhline(y=0.5, linestyle='--', color='0.75')
+        return Thesisgen.figure_to_base64(fig)
 
-        canvas = FigureCanvas(fig)
-        s = BytesIO()
-        canvas.print_png(s)
-        return base64.b64encode(s.getvalue())
+
+    @staticmethod
+    def make_df(table:Table):
+        df = pd.DataFrame(table.rows, columns=table.header)
+        # df.set_index('composer')
+        return df
+
+    @staticmethod
+    def get_demsar_diagram(exp_ids):
+        table = Thesisgen.get_performance_table(exp_ids)
+        sign_table, names = Thesisgen.get_significance_table(exp_ids)
+        df = Thesisgen.make_df(sign_table)
+        names = np.array(['%d-%s' % (x[0], x[2]) for x in table.rows])
+        scores = np.array([float(x[4][:-1]) for x in table.rows])
+
+        idx = np.argsort(scores)
+        scores = list(scores[idx])
+        names = list(names[idx])
+
+        # print(list(df.group1), list(df.group2), list(df.significant))
+        def get_insignificant_pairs(*args):
+            mylist = []
+            for a, b, significant_diff in zip(df.group1, df.group2, df.significant):
+                if significant_diff == 'False':  # convert str
+                    mylist.append((names.index(a), names.index(b)))
+            return sorted(set(tuple(sorted(x)) for x in mylist))
+
+        fig = graph_ranks(scores, names, get_insignificant_pairs, fontsize=8)
+        print_figure(fig, "%s.png" % ('_'.join(sorted(names))), format='png')
+
+        return Thesisgen.figure_to_base64(fig)
 
     @staticmethod
     def get_performance_table(exp_ids):
@@ -392,9 +296,10 @@ class Thesisgen(BaseExplosionAnalysis):
             data.append([n, CLASSIFIER, composer_name,
                          sample_size, '{:.2%}'.format(acc), '{:.2%}'.format(acc_stderr)])
 
-        return Table(['id', 'classifier', 'composer', 'sample size', METRIC, 'std error'],
-                     data,
-                     'Performance at 500 training documents')
+        table = Table(['id', 'classifier', 'composer', 'sample size', METRIC, 'std error'],
+                      data,
+                      'Performance at 500 training documents')
+        return table
 
     @staticmethod
     def get_significance_table(exp_ids, classifier='MultinomialNB'):
@@ -444,9 +349,10 @@ class Thesisgen(BaseExplosionAnalysis):
         data = str(a).split('\n')
         desc = data[0]
         header = data[2].split()
+        header[-1] = 'significant'
         rows = [row.split() for row in data[4:-1]]
 
-        return Table(header, rows, desc)
+        return Table(header, rows, desc), sorted(set(composers))
 
     @staticmethod
     def plot_regression_line(ax, x, y, weights):

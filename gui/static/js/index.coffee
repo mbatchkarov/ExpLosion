@@ -2,9 +2,9 @@ add_group = ->
     checked_boxes = new Object()
     for paramdiv in document.getElementById('form').children
         checked_boxes[paramdiv.id] = []
-        for boxdiv in paramdiv.children
-            if boxdiv.getElementsByTagName('input')[0].checked
-                checked_boxes[paramdiv.id].push(boxdiv.getElementsByTagName('input')[0].name)
+        for box in paramdiv.children
+            if box.checked
+                checked_boxes[paramdiv.id].push(box.name)
 
     suffix = jQuery.param checked_boxes
     suffix = "?".concat(suffix)
@@ -49,6 +49,6 @@ analyze_selected_experiments = ->
             return
     return
 
-$(document).ready(bla = ->
-    $('input:checkbox').bootstrapSwitch('size', 'mini')
-)
+#$(document).ready(bla = ->
+#    $('input:checkbox').bootstrapSwitch('size', 'mini')
+#)

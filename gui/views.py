@@ -52,15 +52,17 @@ def analyse(request, get_tables=lambda foo: [], get_generated_figures=lambda foo
 @never_cache
 def show_current_selection(request, allow_pruning=False):
     # render all currently requested experiments
-    existing_experiments = [foo[0] for foo in request.session.get('groups', [])]
-    experiments = Experiment.objects.all().filter(id__in=existing_experiments)
-    if len(experiments) < 1:
+    existing_experiment_groups = [foo for foo in request.session.get('groups', [])]
+    representative_experiment_ids = [foo[0] for foo in existing_experiment_groups]
+    representative_experiments = Experiment.objects.all().filter(id__in=representative_experiment_ids)
+    if len(representative_experiments) < 1:
         return HttpResponse('No experiments match your current selection')
     desc = 'Settings for selected experiments:'
-    header = sorted(x for x in experiments[0].__dict__ if not x.startswith('_'))
+    header = sorted(x for x in representative_experiments[0].__dict__ if not x.startswith('_'))
     rows = []
-    for exp in experiments:
-        rows.append([getattr(exp, field) for field in header])
+    for i, exp in enumerate(representative_experiments):
+        rows.append(['%d(+%d)' % (exp.id, len(existing_experiment_groups[i]) - 1) if field == 'id' \
+                         else getattr(exp, field) for field in header])
     table = Table(header, rows, desc)
 
     if allow_pruning:

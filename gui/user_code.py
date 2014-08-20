@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
-from critical_difference.plot import graph_ranks, print_figure
+from critical_difference.plot import do_plot, print_figure
 
 from gui.models import Experiment, Table, get_results_table
 
@@ -272,7 +272,7 @@ class Thesisgen(BaseExplosionAnalysis):
                     mylist.append((names.index(a), names.index(b)))
             return sorted(set(tuple(sorted(x)) for x in mylist))
 
-        fig = graph_ranks(scores, names, get_insignificant_pairs, fontsize=8)
+        fig = do_plot(scores, get_insignificant_pairs, names)
         print_figure(fig, "%s.png" % ('_'.join(sorted(names))), format='png')
 
         return Thesisgen.figure_to_base64(fig)
@@ -339,10 +339,6 @@ class Thesisgen(BaseExplosionAnalysis):
          group1  group2 meandiff  lower   upper  reject
         -----------------------------------------------
         57-APDT 58-APDT -0.0487  -0.0759 -0.0215  True
-        57-APDT 59-APDT -0.2581  -0.2853 -0.2309  True
-        57-APDT 60-APDT -0.2705  -0.2977 -0.2433  True
-        58-APDT 59-APDT -0.2094  -0.2366 -0.1823  True
-        58-APDT 60-APDT -0.2218   -0.249 -0.1946  True
         59-APDT 60-APDT -0.0124  -0.0395  0.0148 False
         -----------------------------------------------
         '''

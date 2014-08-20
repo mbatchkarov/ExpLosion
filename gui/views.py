@@ -17,10 +17,11 @@ def index(request):
     for column_name in data.keys():
         if column_name == 'labelled':
             all_values = Experiment.objects.values_list(column_name, flat=True)
-            acceptable_values = set(x if len(x) < 5 else 'TECH' for x in all_values)  # what a hack!
+            acceptable_values = set(x if len(x) < 5 else 'TechTC' for x in all_values)  # what a hack!
             valid_fields[column_name] = acceptable_values
         else:
             valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
+    print(valid_fields)
     return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 
 
@@ -72,6 +73,9 @@ def add_group(request):
     # store the newly requested experiments in the session
     params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
     query_dict = {'%s__in' % k: v for k, v in params.items()}
+    if query_dict['labelled__in'] == ['TechTC']:
+        del query_dict['labelled__in']
+        query_dict['labelled__contains'] =  'techtc'
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
     existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])

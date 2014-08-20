@@ -29,20 +29,20 @@ def demo(request):
     return render_to_response('demo.html')
 
 
-def analyse(request, analyser=None):
+def analyse(request, get_tables=list, get_generated_figures=list, get_static_figures=list):
     response = HttpResponse()
 
     exp_ids = request.session.get('groups', [])
-    for table in analyser.get_tables(exp_ids):
+    for table in get_tables(exp_ids):
         content = render_to_string('table.html', table.__dict__)
         response.write(content)
 
-    for img in analyser.get_generated_figures(exp_ids):
+    for img in get_generated_figures(exp_ids):
         content = render_to_string('image.html', {'image': img})
         response.write(content)
 
-    # for path in analyser.get_static_figures(exp_ids):
-    #     response.write('<br> %s <br> <img src="%s"><br>' % (os.path.basename(path), path))
+    for path in get_static_figures(exp_ids):
+        response.write('<br> %s <br> <img src="%s"><br>' % (os.path.basename(path), path))
 
     return response
 

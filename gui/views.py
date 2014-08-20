@@ -87,15 +87,21 @@ def add_group(request):
 
     all_selected = Experiment.objects.filter(id__in=existing_experiments)
 
-    def all_fields_but(x, excluded=['id', 'labelled', '_state']):
+    def get_coarse_attr(obj, attr):
+        val = getattr(obj, attr)
+        if attr == 'labelled' and 'techtc' in val.lower():
+            val = 'TechTC'
+        return val
+
+    def get_coarse_experiment_settings(x, excluded=['id', '_state']):
         fields = set(foo for foo in x.__dict__.keys())
         for foo in excluded:
             fields.remove(foo)
-        return tuple([(f, getattr(x, f)) for f in sorted(fields)])
+        return tuple([(f, get_coarse_attr(x, f)) for f in sorted(fields)])
 
     grouped_experiments = []
-    s = sorted(all_selected, key=all_fields_but)
-    for key, group in groupby(s, all_fields_but):
+    s = sorted(all_selected, key=get_coarse_experiment_settings)
+    for key, group in groupby(s, get_coarse_experiment_settings):
         grouped_experiments.append([foo.id for foo in group])
 
     request.session['groups'] = grouped_experiments

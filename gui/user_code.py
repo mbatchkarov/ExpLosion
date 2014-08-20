@@ -262,7 +262,8 @@ def get_performance_table(exp_ids):
         if isinstance(exp_group, int):
             exp_group = [exp_group]
         composer_name = '%s(+%d)-%s' % (exp_group[0], len(exp_group) - 1, get_composer_name(exp_group[0]))
-        data_this_group = []
+        mean_this_group = []
+        std_this_group = []
         for n in exp_group:
             results = get_results_table(n).objects.all().filter(metric=METRIC,
                                                                 classifier=CLASSIFIER)
@@ -271,15 +272,16 @@ def get_performance_table(exp_ids):
                 print('skipping table %d and classifier %s' % (exp_group, CLASSIFIER))
                 continue
 
-            size, acc, acc_stderr = results[0].get_performance_info()
-            data_this_group.append(acc)
+            _, acc, acc_std = results[0].get_performance_info()
+            mean_this_group.append(acc)
+            std_this_group.append(acc_std)
 
         all_data.append([exp_group, CLASSIFIER, composer_name,
-                         '{:.2}'.format(np.mean(data_this_group)),
-                         '{:.2}'.format(np.std(data_this_group))])
-    table = Table(['id', 'classifier', 'composer', METRIC, 'std error'],
+                         '{:.2}'.format(np.mean(mean_this_group)),
+                         '{:.2}'.format(np.mean(std_this_group))])
+    table = Table(['id', 'classifier', 'composer', METRIC, 'std'],
                   all_data,
-                  'Performance at 500 training documents')
+                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_group]')
     return table
 
 

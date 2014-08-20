@@ -29,7 +29,8 @@ def demo(request):
     return render_to_response('demo.html')
 
 
-def analyse(request, get_tables=list, get_generated_figures=list, get_static_figures=list):
+def analyse(request, get_tables=lambda foo: [], get_generated_figures=lambda foo: [],
+            get_static_figures=lambda foo: []):
     response = HttpResponse()
 
     exp_ids = request.session.get('groups', [])
@@ -75,7 +76,7 @@ def add_group(request):
     query_dict = {'%s__in' % k: v for k, v in params.items()}
     if query_dict['labelled__in'] == ['TechTC']:
         del query_dict['labelled__in']
-        query_dict['labelled__contains'] =  'techtc'
+        query_dict['labelled__contains'] = 'techtc'
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
     existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])

@@ -19,7 +19,7 @@ METRIC = 'accuracy_score'
 def populate_manually():
     # run manually in django console to populate the database
     if Experiment.objects.count():
-       return
+        return
 
     with open('experiments.txt') as infile:
         table_descr = [eval(x)[0] for x in infile.readlines()]
@@ -54,7 +54,8 @@ def get_static_figures(exp_ids):
 
 
 def get_generated_figures(exp_ids):
-    return [get_demsar_diagram(exp_ids)] if exp_ids else []  # get_r2_correlation_plot(exp_ids)
+    return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
+    # get_r2_correlation_plot(exp_ids)
 
 
 def _get_r2_from_log(exp_ids, logs):
@@ -206,87 +207,116 @@ def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
     return figure_to_base64(fig)
 
 
-def make_df(table:Table):
+def make_df(table:Table, index_cols=None):
     df = pd.DataFrame(table.rows, columns=table.header)
-    # df.set_index('composer')
+    if index_cols:
+        df.set_index(index_cols, inplace=True)
     return df
 
 
-def get_demsar_diagram(exp_ids):
-    table = get_performance_table(exp_ids)
-    sign_table, names = get_significance_table(exp_ids)
-    df = make_df(sign_table)
-    names = np.array(['%d-%s' % (x[0], x[2]) for x in table.rows])
-    scores = np.array([float(x[4][:-1]) for x in table.rows])
+def get_demsar_params(exp_ids):
+    scores_table = make_df(get_performance_table(exp_ids), 'id').convert_objects(convert_numeric=True)
 
+    data, composers = get_scores(exp_ids)
+    sign_table, _ = get_significance_table(exp_ids, data=data, composers=composers)
+    sign_table = make_df(sign_table)
+
+    return sign_table, np.array(scores_table.composer), np.array(scores_table.accuracy_score)
+
+
+def get_demsar_diagram(significance_df, names, scores):
     idx = np.argsort(scores)
     scores = list(scores[idx])
     names = list(names[idx])
 
-    # print(list(df.group1), list(df.group2), list(df.significant))
     def get_insignificant_pairs(*args):
         mylist = []
-        for a, b, significant_diff in zip(df.group1, df.group2, df.significant):
-            if significant_diff == 'False':  # convert str
+        for a, b, significant_diff in zip(significance_df.group1,
+                                          significance_df.group2,
+                                          significance_df.significant):
+            if significant_diff == 'False':
                 mylist.append((names.index(a), names.index(b)))
         return sorted(set(tuple(sorted(x)) for x in mylist))
 
     fig = do_plot(scores, get_insignificant_pairs, names)
-    print_figure(fig, "%s.png" % ('_'.join(sorted(names))), format='png')
-
-    return figure_to_base64(fig)
+    fig.set_canvas(plt.gcf().canvas)
+    print_figure(fig, "%s.png" % ('_'.join(sorted(set(names)))), format='png')
+    return fig
 
 
 def get_performance_table(exp_ids):
     print('running performance query')
-    data = []
-    sample_size = 500
-    for n in exp_ids:
-        composer_name = get_composer_name(n)
-        results = get_results_table(n).objects.all().filter(metric=METRIC,
-                                                            classifier=CLASSIFIER,
-                                                            sample_size=sample_size)
-        if not results.exists():
-            # table or result does not exist
-            print('skipping table %d and classifier %s' % (n, CLASSIFIER))
-            continue
 
-        size, acc, acc_stderr = results[0].get_performance_info()
-        data.append([n, CLASSIFIER, composer_name,
-                     sample_size, '{:.2%}'.format(acc), '{:.2%}'.format(acc_stderr)])
+    # for exp_list in exp_lists:
+    # if isinstance(exp_list, int):
+    # exp_list = [exp_list]
+    # composer = '%s-%s' % ('-'.join(str(foo) for foo in exp_list),
+    # get_composer_name(exp_list[0]))
+    # composers.extend([composer] * (cv_folds * len(exp_list)))
+    # for exp_number in exp_list:
 
-    table = Table(['id', 'classifier', 'composer', 'sample size', METRIC, 'std error'],
-                  data,
+    all_data = []
+    for exp_group in exp_ids:
+        if isinstance(exp_group, int):
+            exp_group = [exp_group]
+        composer_name = '%s-%s' % ('-'.join(str(foo) for foo in exp_group),
+                                   get_composer_name(exp_group[0]))
+        data_this_group = []
+        for n in exp_group:
+            results = get_results_table(n).objects.all().filter(metric=METRIC,
+                                                                classifier=CLASSIFIER)
+            if not results.exists():
+                # table or result does not exist
+                print('skipping table %d and classifier %s' % (exp_group, CLASSIFIER))
+                continue
+
+            size, acc, acc_stderr = results[0].get_performance_info()
+            data_this_group.append(acc)
+
+        all_data.append([exp_group, CLASSIFIER, composer_name,
+                         '{:.2}'.format(np.mean(data_this_group)),
+                         '{:.2}'.format(np.std(data_this_group))])
+    table = Table(['id', 'classifier', 'composer', METRIC, 'std error'],
+                  all_data,
                   'Performance at 500 training documents')
     return table
 
 
-def get_significance_table(exp_ids, classifier='MultinomialNB'):
+def _get_cv_scores_single_experiment(n, classifier):
+    # human-readable name
+    composer_name = get_composer_name(n)
+    # get scores for each CV run- these aren't in the database
+    # only at size 500
+    outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
+    scores = pd.read_csv(outfile)
+    mask = (scores.classifier == classifier) & (scores.metric == METRIC)
+    ordered_scores = scores.score[mask].tolist()
+    return ordered_scores, '%d-%s' % (n, composer_name)
+
+
+def get_scores(exp_lists, classifier='MultinomialNB', cv_folds=25):
     # get human-readable labels for the table
     data = []
     composers = []
 
+    for exp_list in exp_lists:
+        if isinstance(exp_list, int):
+            exp_list = [exp_list]
+        composer = '%s-%s' % ('-'.join(str(foo) for foo in exp_list),
+                              get_composer_name(exp_list[0]))
+        composers.extend([composer] * (cv_folds * len(exp_list)))
+        for exp_number in exp_list:
+            scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
+            data.extend(scores)
+    return data, composers
+
+
+def get_significance_table(exp_ids, classifier='MultinomialNB', cv_folds=25, data=None, composers=None):
     print('Running significance for experiments %r' % exp_ids)
-    for n in exp_ids:
-        # human-readable name
-        composer_name = get_composer_name(n)
-        cv_folds = get_results_table(n).objects.values_list('cv_folds', flat=True)[0]
-        composers.extend(['%d-%s' % (n, composer_name)] * cv_folds)
+    if data is None and composers is None:
+        data, composers = get_scores(exp_ids, classifier=classifier, cv_folds=cv_folds)
 
-        # get scores for each CV run- these aren't in the database
-        # only at size 500
-        outfile = '../rator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
-        df = pd.read_csv(outfile)
-        mask = df['classifier'].isin([classifier]) & df['metric'].isin([METRIC])
-        ordered_scores = df['score'][mask].tolist()
-        data.append(ordered_scores)
-
-        # #plot distribution of scores to visually check for normality
-        # plt.figure()
-        # plt.hist(sorted(ordered_scores), bins=12)
-        # plt.savefig('distrib%d.png' % n, format='png')
-    data = np.hstack(data)
-    mod = MultiComparison(data, composers, group_order=sorted(set(composers)))
+    mod = MultiComparison(np.array(data), composers, group_order=sorted(set(composers)))
     a = mod.tukeyhsd(alpha=0.01)
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists
 

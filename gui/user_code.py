@@ -240,7 +240,9 @@ def get_demsar_diagram(significance_df, names, scores):
 
     fig = do_plot(scores, get_insignificant_pairs, names)
     fig.set_canvas(plt.gcf().canvas)
-    print_figure(fig, "%s.png" % ('_'.join(sorted(set(names)))), format='png')
+    filename = "%s.png" % ('_'.join(sorted(set(names))))
+    print('Saving figure to %s' % filename)
+    print_figure(fig, filename, format='png')
     return fig
 
 
@@ -259,8 +261,7 @@ def get_performance_table(exp_ids):
     for exp_group in exp_ids:
         if isinstance(exp_group, int):
             exp_group = [exp_group]
-        composer_name = '%s-%s' % ('-'.join(str(foo) for foo in exp_group),
-                                   get_composer_name(exp_group[0]))
+        composer_name = '%s(+%d)-%s' % (exp_group[0], len(exp_group) - 1, get_composer_name(exp_group[0]))
         data_this_group = []
         for n in exp_group:
             results = get_results_table(n).objects.all().filter(metric=METRIC,
@@ -299,13 +300,12 @@ def get_scores(exp_lists, classifier='MultinomialNB', cv_folds=25):
     data = []
     composers = []
 
-    for exp_list in exp_lists:
-        if isinstance(exp_list, int):
-            exp_list = [exp_list]
-        composer = '%s-%s' % ('-'.join(str(foo) for foo in exp_list),
-                              get_composer_name(exp_list[0]))
-        composers.extend([composer] * (cv_folds * len(exp_list)))
-        for exp_number in exp_list:
+    for exp_group in exp_lists:
+        if isinstance(exp_group, int):
+            exp_group = [exp_group]
+        composer = '%s(+%d)-%s' % (exp_group[0], len(exp_group) - 1, get_composer_name(exp_group[0]))
+        composers.extend([composer] * (cv_folds * len(exp_group)))
+        for exp_number in exp_group:
             scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
             data.extend(scores)
     return data, composers

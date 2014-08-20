@@ -20,6 +20,13 @@ class Experiment(models.Model):
         return 'exp{}:{}-{}-{},{}-{},{}'.format(self.id, self.unlabelled, self.svd, self.thesaurus_features[:3],
                                                 self.composer, self.document_features, self.labelled)
 
+
+    def __repr__(self):
+        return self.__unicode__()
+
+    def __str__(self):
+        return self.__unicode__()
+
     class Meta:
         db_table = 'ExperimentDescriptions'
 

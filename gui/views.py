@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from itertools import groupby
 import os
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
@@ -51,7 +52,7 @@ def analyse(request, get_tables=lambda foo: [], get_generated_figures=lambda foo
 @never_cache
 def show_current_selection(request, allow_pruning=False):
     # render all currently requested experiments
-    existing_experiments = request.session.get('groups', [])
+    existing_experiments = [foo[0] for foo in request.session.get('groups', [])]
     experiments = Experiment.objects.all().filter(id__in=existing_experiments)
     if len(experiments) < 1:
         return HttpResponse('No experiments match your current selection')
@@ -79,8 +80,23 @@ def add_group(request):
         query_dict['labelled__contains'] = 'techtc'
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
+    existing_experiments = [exp for group in existing_experiments for exp in group]
     existing_experiments.extend([x for x in new_experiments if x not in existing_experiments])
-    request.session['groups'] = existing_experiments
+
+    all_selected = Experiment.objects.filter(id__in=existing_experiments)
+
+    def all_fields_but(x, excluded=['id', 'labelled', '_state']):
+        fields = set(foo for foo in x.__dict__.keys())
+        for foo in excluded:
+            fields.remove(foo)
+        return tuple([(f, getattr(x, f)) for f in sorted(fields)])
+
+    grouped_experiments = []
+    s = sorted(all_selected, key=all_fields_but)
+    for key, group in groupby(s, all_fields_but):
+        grouped_experiments.append([foo.id for foo in group])
+
+    request.session['groups'] = grouped_experiments
 
     return show_current_selection(request)
 

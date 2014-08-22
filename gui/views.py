@@ -16,12 +16,7 @@ def index(request):
     valid_fields = {}
     # field -> all values it has in the database
     for column_name in data.keys():
-        if column_name == 'labelled':
-            all_values = Experiment.objects.values_list(column_name, flat=True)
-            acceptable_values = set(x if len(x) < 5 else 'TechTC' for x in all_values)  # what a hack!
-            valid_fields[column_name] = acceptable_values
-        else:
-            valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
+        valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
     print(valid_fields)
     return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 
@@ -77,9 +72,6 @@ def add_group(request):
     # store the newly requested experiments in the session
     params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
     query_dict = {'%s__in' % k: v for k, v in params.items()}
-    if query_dict['labelled__in'] == ['TechTC']:
-        del query_dict['labelled__in']
-        query_dict['labelled__contains'] = 'techtc'
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
     existing_experiments = [exp for group in existing_experiments for exp in group]
@@ -87,21 +79,15 @@ def add_group(request):
 
     all_selected = Experiment.objects.filter(id__in=existing_experiments)
 
-    def get_coarse_attr(obj, attr):
-        val = getattr(obj, attr)
-        if attr == 'labelled' and 'techtc' in val.lower():
-            val = 'TechTC'
-        return val
-
-    def get_coarse_experiment_settings(x, excluded=['id', '_state']):
+    def get_most_experiment_settings(x, excluded=['id', '_state']):
         fields = set(foo for foo in x.__dict__.keys())
         for foo in excluded:
             fields.remove(foo)
-        return tuple([(f, get_coarse_attr(x, f)) for f in sorted(fields)])
+        return tuple([(f, getattr(x, f)) for f in sorted(fields)])
 
     grouped_experiments = []
-    s = sorted(all_selected, key=get_coarse_experiment_settings)
-    for key, group in groupby(s, get_coarse_experiment_settings):
+    s = sorted(all_selected, key=get_most_experiment_settings)
+    for key, group in groupby(s, get_most_experiment_settings):
         grouped_experiments.append([foo.id for foo in group])
 
     request.session['groups'] = grouped_experiments

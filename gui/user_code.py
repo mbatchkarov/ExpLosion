@@ -22,7 +22,7 @@ def populate_manually():
         return
 
     with open('experiments.txt') as infile:
-        table_descr = [eval(x)[0] for x in infile.readlines()]
+        table_descr = [x.strip() for x in infile.readlines()]
     # '5,gigaw,R2,0,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler' ,
     # '136,word2vec,MR,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
     for line in table_descr:
@@ -281,7 +281,7 @@ def get_performance_table(exp_ids):
                          '{:.2}'.format(np.mean(std_this_group))])
     table = Table(['id', 'classifier', 'composer', METRIC, 'std'],
                   all_data,
-                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_group]')
+                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_group])')
     return table
 
 
@@ -318,6 +318,8 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', cv_folds=25, dat
     if data is None and composers is None:
         data, composers = get_scores(exp_ids, classifier=classifier, cv_folds=cv_folds)
 
+    if len(set(composers)) < 2:
+        raise ValueError('Cannot run significance test on less than 2 methods: %r' % set(composers))
     mod = MultiComparison(np.array(data), composers, group_order=sorted(set(composers)))
     a = mod.tukeyhsd(alpha=0.01)
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists

@@ -2,6 +2,9 @@ from io import BytesIO
 import base64
 import re
 
+import matplotlib as mpl
+mpl.use('Agg') # for running on headless servers
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np

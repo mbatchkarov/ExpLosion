@@ -31,6 +31,9 @@ class Experiment(models.Model):
         db_table = 'ExperimentDescriptions'
 
 
+cached_models = {}
+
+
 def get_results_table(param):
     """
     Thesisgenerator-specific model for extracting results out of the database
@@ -39,7 +42,9 @@ def get_results_table(param):
 
     class MyClassMetaclass(models.base.ModelBase):
         def __new__(cls, name, bases, attrs):
-            return models.base.ModelBase.__new__(cls, 'data%d' % param, bases, attrs)
+            if param not in cached_models:
+                cached_models[param] = models.base.ModelBase.__new__(cls, 'data%d' % param, bases, attrs)
+            return cached_models[param]
 
     class ThesisgeneratorPerformanceResult(models.Model, metaclass=MyClassMetaclass):
         __metaclass__ = MyClassMetaclass

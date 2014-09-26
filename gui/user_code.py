@@ -15,6 +15,22 @@ from gui.models import Experiment, Table, get_results_table
 CLASSIFIER = 'MultinomialNB'
 METRIC = 'accuracy_score'
 
+def get_tables(exp_ids):
+    return [
+        get_performance_table(exp_ids),
+        get_significance_table(exp_ids)[0],
+    ] if exp_ids else []
+
+
+def get_static_figures(exp_ids):
+    return [
+        "static/figures/stats-exp%d-0.png" % n for n in exp_ids
+    ] if exp_ids else []
+
+
+def get_generated_figures(exp_ids):
+    return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
+    # get_r2_correlation_plot(exp_ids)
 
 def populate_manually():
     # run manually in django console to populate the database
@@ -40,22 +56,6 @@ def populate_manually():
         exp.save()
 
 
-def get_tables(exp_ids):
-    return [
-        get_performance_table(exp_ids),
-        get_significance_table(exp_ids)[0],
-    ] if exp_ids else []
-
-
-def get_static_figures(exp_ids):
-    return [
-        "static/figures/stats-exp%d-0.png" % n for n in exp_ids
-    ] if exp_ids else []
-
-
-def get_generated_figures(exp_ids):
-    return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
-    # get_r2_correlation_plot(exp_ids)
 
 
 def _get_r2_from_log(exp_ids, logs):

@@ -121,3 +121,7 @@ class Table():
             idx_to_keep = set(range(len(self.header))) - set(dupl_idx)
             self.header = itemgetter(*idx_to_keep)(self.header)
             self.rows = [itemgetter(*idx_to_keep)(row) for row in self.rows]
+            if len(idx_to_keep) == 1:
+                # itemgetter will return just an item, no a list containing the item
+                self.header = [self.header]
+                self.rows = [[x] for x in self.rows]

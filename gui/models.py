@@ -4,31 +4,58 @@ from django.db import models
 
 
 class Experiment(models.Model):
-    id = models.PositiveIntegerField(blank=False, null=False, primary_key=True)
-    composer = models.CharField(max_length=100)
-    labelled = models.CharField(max_length=100)
-    unlabelled = models.CharField(max_length=100)
-    thesaurus_features = models.CharField(max_length=100)
-    svd = models.IntegerField()
-    document_features = models.CharField(max_length=100)
-    baronified = models.IntegerField()
+    id = models.IntegerField(primary_key=True)
+    document_features = models.CharField(max_length=255)
     use_similarity = models.IntegerField()
     use_random_neighbours = models.IntegerField()
-    decode_handler = models.CharField(max_length=100)
-
-    def __unicode__(self):
-        return 'exp{}:{}-{}-{},{}-{},{}'.format(self.id, self.unlabelled, self.svd, self.thesaurus_features[:3],
-                                                self.composer, self.document_features, self.labelled)
-
-
-    def __repr__(self):
-        return self.__unicode__()
+    decode_handler = models.CharField(max_length=255)
+    vectors = models.ForeignKey('Vectors', blank=True, null=True)
+    labelled = models.CharField(max_length=255)
+    date_ran = models.DateField(blank=True, null=True)
+    git_hash = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
-        return self.__unicode__()
+        basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))
+        return '%s: %s' % (self.id, basic_settings)
 
     class Meta:
-        db_table = 'ExperimentDescriptions'
+        managed = False
+        db_table = 'classificationexperiment'
+
+
+class Results(models.Model):
+    id = models.ForeignKey(Experiment, primary_key=True)
+    classifier = models.CharField(max_length=255)
+    accuracy_mean = models.FloatField()
+    accuracy_std = models.FloatField()
+    microf1_mean = models.FloatField()
+    microf1_std = models.FloatField()
+    macrof1_mean = models.FloatField()
+    macrof1_std = models.FloatField()
+
+    class Meta:
+        managed = False
+        db_table = 'results'
+
+
+class Vectors(models.Model):
+    id = models.IntegerField(primary_key=True)
+    algorithm = models.CharField(max_length=255)
+    can_build = models.IntegerField()
+    dimensionality = models.IntegerField(blank=True, null=True)
+    unlabelled_percentage = models.IntegerField(blank=True, null=True)
+    unlabelled = models.CharField(max_length=255, blank=True)
+    path = models.CharField(max_length=255, blank=True)
+    composer = models.CharField(max_length=255)
+    modified = models.DateField(blank=True, null=True)
+    size = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer, self.dimensionality])
+
+    class Meta:
+        managed = False
+        db_table = 'vectors'
 
 
 cached_models = {}

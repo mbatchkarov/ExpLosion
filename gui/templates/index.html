@@ -19,7 +19,7 @@
         <div id="{{ key }}">
             {{ key }} :
             {% for value in values %}
-                &nbsp {{ value }} <input type="checkbox" name="{{ value }}" {% if forloop.first %}checked {% endif %}>
+                &nbsp {{ value }} <input type="checkbox" name="{{ value }}" >
                 {{ c }}
             {% endfor %}
         </div>

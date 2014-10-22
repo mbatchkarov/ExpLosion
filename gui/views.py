@@ -7,16 +7,23 @@ from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
 
-from gui.models import Experiment, Table
+from gui.models import Experiment, Vectors, Table
 
 
 def index(request):
     # get all fields of the Experiment object
-    data = model_to_dict(Experiment.objects.get(id=1), exclude=['id'])
     valid_fields = {}
+    data = model_to_dict(Experiment.objects.get(id=1), exclude=['id', 'date_ran', 'git_hash', 'vectors'])
     # field -> all values it has in the database
     for column_name in data.keys():
-        valid_fields[column_name] = sorted(set(Experiment.objects.values_list(column_name, flat=True)))
+        valid_fields[column_name] = set(Experiment.objects.values_list(column_name, flat=True))
+
+    data = model_to_dict(Vectors.objects.get(id=1), exclude=['id', 'can_build', 'path',
+                                                             'unlabelled_percentage', 'modified', 'size'])
+    print(valid_fields)
+    for column_name in data.keys():
+        valid_fields['vectors__%s' % column_name] = set(Vectors.objects.values_list(column_name, flat=True))
+
     print(valid_fields)
     return render_to_response('index.html', {'data': OrderedDict(sorted(valid_fields.items()))})
 

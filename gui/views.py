@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 
 from gui.models import Experiment, Vectors, Table
 
-excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors'] # todo id needed in both these?
+excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
 excluded_vector_columns = ['id', 'can_build', 'path', 'unlabelled_percentage', 'modified', 'size']
 columns_to_show = {}
 
@@ -63,13 +63,14 @@ def show_current_selection(request, allow_pruning=False):
     desc = 'Settings for selected experiments:'
     if not columns_to_show:
         init_columns_to_show()
-    header = list(columns_to_show.keys())
+    header = ['id', 'vectors__id'] + list(columns_to_show.keys())
+    print()
     rows = []
     for i, exp in enumerate(existing_experiments):
         row = []
         for field in header:
             if 'vectors__' in field:
-                #need to follow foreign key
+                # need to follow foreign key
                 row.append(getattr(exp.vectors, field.split('__')[1]))
             else:
                 row.append(getattr(exp, field))

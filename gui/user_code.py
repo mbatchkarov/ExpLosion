@@ -265,19 +265,19 @@ def get_performance_table(exp_ids):
     for exp_id in exp_ids:
         composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
         results = Results.objects.get(id=exp_id, classifier=CLASSIFIER)
+        # todo handle missing results better
         # except DoesNotExist:
         #     # table or result does not exist
         #     print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
         #     continue
 
         score_mean, score_std = results.get_performance_info(METRIC)
-        # mean_this_group.append(score_mean)
-        # std_this_group.append(score_std)
+        vectors_id = Experiment.objects.get(id=exp_id).vectors.id
 
-        all_data.append([exp_id, CLASSIFIER, composer_name,
+        all_data.append([exp_id, vectors_id, CLASSIFIER, composer_name,
                          '{:.2}'.format(np.mean(score_mean)),
                          '{:.2}'.format(np.mean(score_std))])
-    table = Table(['id', 'classifier', 'composer', METRIC, 'std'],
+    table = Table(['exp id', 'vectors_id', 'classifier', 'composer', METRIC, 'std'],
                   all_data,
                   'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
     return table

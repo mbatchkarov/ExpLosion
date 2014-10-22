@@ -3,7 +3,8 @@ import base64
 import re
 
 import matplotlib as mpl
-mpl.use('Agg') # for running on headless servers
+
+mpl.use('Agg')  # for running on headless servers
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -13,15 +14,16 @@ from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
 
-from gui.models import Experiment, Table, get_results_table
+from gui.models import Experiment, Table, Results
 
 CLASSIFIER = 'MultinomialNB'
-METRIC = 'accuracy_score'
+METRIC = 'accuracy'
+
 
 def get_tables(exp_ids):
     return [
         get_performance_table(exp_ids),
-        get_significance_table(exp_ids)[0],
+        # get_significance_table(exp_ids)[0],
     ] if exp_ids else []
 
 
@@ -32,8 +34,10 @@ def get_static_figures(exp_ids):
 
 
 def get_generated_figures(exp_ids):
-    return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
+    return [] # todo this is where we control what information is diplayed to the client
+    # return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
     # get_r2_correlation_plot(exp_ids)
+
 
 def populate_manually():
     # run manually in django console to populate the database
@@ -57,8 +61,6 @@ def populate_manually():
                          use_random_neighbours=use_random_neighbours,
                          decode_handler=decode_handler)
         exp.save()
-
-
 
 
 def _get_r2_from_log(exp_ids, logs):
@@ -129,8 +131,7 @@ def get_r2_correlation_plot(exp_ids):
     selected_acc = []
     acc_err = []
     for n in exp_ids:
-        sample_size, score_mean, score_std = get_results_table(n).objects.all(). \
-            filter(classifier=CLASSIFIER, metric=METRIC)[0].get_performance_info()
+        sample_size, score_mean, score_std = Results.get(id=n, classifier=CLASSIFIER).get_performance_info(METRIC)
         selected_acc.append(score_mean)
         acc_err.append(score_std)
 
@@ -261,30 +262,24 @@ def get_performance_table(exp_ids):
     # for exp_number in exp_list:
 
     all_data = []
-    for exp_group in exp_ids:
-        if isinstance(exp_group, int):
-            exp_group = [exp_group]
-        composer_name = '%s(+%d)-%s' % (exp_group[0], len(exp_group) - 1, get_composer_name(exp_group[0]))
-        mean_this_group = []
-        std_this_group = []
-        for n in exp_group:
-            results = get_results_table(n).objects.all().filter(metric=METRIC,
-                                                                classifier=CLASSIFIER)
-            if not results.exists():
-                # table or result does not exist
-                print('skipping table %d and classifier %s' % (exp_group, CLASSIFIER))
-                continue
+    for exp_id in exp_ids:
+        composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
+        results = Results.objects.get(id=exp_id, classifier=CLASSIFIER)
+        # except DoesNotExist:
+        #     # table or result does not exist
+        #     print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
+        #     continue
 
-            _, acc, acc_std = results[0].get_performance_info()
-            mean_this_group.append(acc)
-            std_this_group.append(acc_std)
+        score_mean, score_std = results.get_performance_info(METRIC)
+        # mean_this_group.append(score_mean)
+        # std_this_group.append(score_std)
 
-        all_data.append([exp_group, CLASSIFIER, composer_name,
-                         '{:.2}'.format(np.mean(mean_this_group)),
-                         '{:.2}'.format(np.mean(std_this_group))])
+        all_data.append([exp_id, CLASSIFIER, composer_name,
+                         '{:.2}'.format(np.mean(score_mean)),
+                         '{:.2}'.format(np.mean(score_std))])
     table = Table(['id', 'classifier', 'composer', METRIC, 'std'],
                   all_data,
-                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_group])')
+                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
     return table
 
 
@@ -359,5 +354,4 @@ def plot_regression_line(ax, x, y, weights):
 
 
 def get_composer_name(n):
-    composer_name = Experiment.objects.values_list('composer', flat=True).filter(id=n)[0]
-    return composer_name
+    return Experiment.objects.get(id=n).vectors.composer

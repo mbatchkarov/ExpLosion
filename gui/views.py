@@ -8,7 +8,7 @@ from django.views.decorators.cache import never_cache
 
 from gui.models import Experiment, Vectors, Table
 
-excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']
+excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors'] # todo id needed in both these?
 excluded_vector_columns = ['id', 'can_build', 'path', 'unlabelled_percentage', 'modified', 'size']
 columns_to_show = {}
 

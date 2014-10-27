@@ -19,7 +19,9 @@ from critical_difference.plot import do_plot, print_figure
 from gui.models import Experiment, Table, Results
 
 CLASSIFIER = 'MultinomialNB'
-METRIC = 'accuracy'
+# the name differs between the DB a the csv files, can't be bothered to fix
+METRIC_DB = 'accuracy'
+METRIC_CSV_FILE = 'accuracy_score'
 
 
 def parse_config_file(conf_file):
@@ -157,7 +159,7 @@ def get_r2_correlation_plot(exp_ids):
     selected_acc = []
     acc_err = []
     for n in exp_ids:
-        sample_size, score_mean, score_std = Results.get(id=n, classifier=CLASSIFIER).get_performance_info(METRIC)
+        sample_size, score_mean, score_std = Results.get(id=n, classifier=CLASSIFIER).get_performance_info(METRIC_DB)
         selected_acc.append(score_mean)
         acc_err.append(score_std)
 
@@ -232,7 +234,7 @@ def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
     else:
         fig.suptitle('All x values are 0, cannot fit regression line')
     ax.set_xlabel(title)
-    ax.set_ylabel(METRIC)
+    ax.set_ylabel(METRIC_DB)
     ax.axhline(y=0.5, linestyle='--', color='0.75')
     return figure_to_base64(fig)
 
@@ -251,7 +253,7 @@ def get_demsar_params(exp_ids):
     sign_table, _ = get_significance_table(exp_ids, data=data, composers=composers)
     sign_table = make_df(sign_table)
 
-    return sign_table, np.array(scores_table.composer), np.array(scores_table.accuracy_score)
+    return sign_table, np.array(scores_table.composer), np.array(scores_table[METRIC_DB])
 
 
 def get_demsar_diagram(significance_df, names, scores):
@@ -295,15 +297,15 @@ def get_performance_table(exp_ids):
         # except DoesNotExist:
         # # table or result does not exist
         # print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
-        #     continue
+        # continue
 
-        score_mean, score_std = results.get_performance_info(METRIC)
+        score_mean, score_std = results.get_performance_info(METRIC_DB)
         vectors_id = Experiment.objects.get(id=exp_id).vectors.id
 
         all_data.append([exp_id, vectors_id, CLASSIFIER, composer_name,
                          '{:.2}'.format(np.mean(score_mean)),
                          '{:.2}'.format(np.mean(score_std))])
-    table = Table(['exp id', 'vectors_id', 'classifier', 'composer', METRIC, 'std'],
+    table = Table(['exp id', 'vectors_id', 'classifier', 'composer', METRIC_DB, 'std'],
                   all_data,
                   'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
     return table
@@ -316,24 +318,21 @@ def _get_cv_scores_single_experiment(n, classifier):
     # only at size 500
     outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
     scores = pd.read_csv(outfile)
-    mask = (scores.classifier == classifier) & (scores.metric == METRIC)
+    mask = (scores.classifier == classifier) & (scores.metric == METRIC_CSV_FILE)
     ordered_scores = scores.score[mask].tolist()
     return ordered_scores, '%d-%s' % (n, composer_name)
 
 
-def get_scores(exp_lists, classifier='MultinomialNB', cv_folds=25):
+def get_scores(exp_ids, classifier='MultinomialNB', cv_folds=25):
     # get human-readable labels for the table
     data = []
     composers = []
 
-    for exp_group in exp_lists:
-        if isinstance(exp_group, int):
-            exp_group = [exp_group]
-        composer = '%s(+%d)-%s' % (exp_group[0], len(exp_group) - 1, get_composer_name(exp_group[0]))
-        composers.extend([composer] * (cv_folds * len(exp_group)))
-        for exp_number in exp_group:
-            scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
-            data.extend(scores)
+    for exp_number in exp_ids:
+        composer = '%d-%s' % (exp_number, get_composer_name(exp_number))
+        composers.extend([composer] * cv_folds)
+        scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
+        data.extend(scores)
     return data, composers
 
 

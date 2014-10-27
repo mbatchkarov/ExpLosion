@@ -245,7 +245,7 @@ def make_df(table:Table, index_cols=None):
 
 
 def get_demsar_params(exp_ids):
-    scores_table = make_df(get_performance_table(exp_ids), 'id').convert_objects(convert_numeric=True)
+    scores_table = make_df(get_performance_table(exp_ids), 'exp id').convert_objects(convert_numeric=True)
 
     data, composers = get_scores(exp_ids)
     sign_table, _ = get_significance_table(exp_ids, data=data, composers=composers)

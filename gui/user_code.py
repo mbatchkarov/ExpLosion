@@ -300,16 +300,14 @@ def get_performance_table(exp_ids):
         # continue
 
         score_mean, score_std = results.get_performance_info(METRIC_DB)
-        try:
-            vectors_id = Experiment.objects.get(id=exp_id).vectors.id
-        except AttributeError:
-            # vectors may be none, and in that case there is no id
-            vectors_id = None
+        vectors = Experiment.objects.get(id=exp_id).vectors
 
-        all_data.append([exp_id, vectors_id, CLASSIFIER, composer_name,
+        vectors_id = vectors.id if vectors else None
+
+        all_data.append([exp_id, str(vectors), CLASSIFIER, composer_name,
                          '{:.2}'.format(np.mean(score_mean)),
                          '{:.2}'.format(np.mean(score_std))])
-    table = Table(['exp id', 'vectors_id', 'classifier', 'composer', METRIC_DB, 'std'],
+    table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'std'],
                   all_data,
                   'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
     return table

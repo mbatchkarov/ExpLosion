@@ -1,5 +1,6 @@
 from io import BytesIO
 import base64
+import os
 import re
 from configobj import ConfigObj
 
@@ -16,6 +17,7 @@ from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
 
+import gui
 from gui.models import Experiment, Table, Results
 
 CLASSIFIER = 'MultinomialNB'
@@ -292,18 +294,14 @@ def get_performance_table(exp_ids):
     all_data = []
     for exp_id in exp_ids:
         composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
-        results = Results.objects.get(id=exp_id, classifier=CLASSIFIER)
-        # todo handle missing results better
-        # except DoesNotExist:
-        # # table or result does not exist
-        # print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
-        # continue
+        results = Results.objects.filter(id=exp_id, classifier=CLASSIFIER)
+        if not results:
+            # table or result does not exist
+            print('Missing results entry for exp %d and classifier %s' % (exp_id, CLASSIFIER))
+            continue
 
-        score_mean, score_std = results.get_performance_info(METRIC_DB)
+        score_mean, score_std = results[0].get_performance_info(METRIC_DB)
         vectors = Experiment.objects.get(id=exp_id).vectors
-
-        vectors_id = vectors.id if vectors else None
-
         all_data.append([exp_id, str(vectors), CLASSIFIER, composer_name,
                          '{:.2}'.format(np.mean(score_mean)),
                          '{:.2}'.format(np.mean(score_std))])
@@ -319,6 +317,9 @@ def _get_cv_scores_single_experiment(n, classifier):
     # get scores for each CV run- these aren't in the database
     # only at size 500
     outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
+    if not os.path.exists(outfile):
+        print('Output file for exp %d missing' % n)
+        return None, '%d-%s' % (n, composer_name)
     scores = pd.read_csv(outfile)
     mask = (scores.classifier == classifier) & (scores.metric == METRIC_CSV_FILE)
     ordered_scores = scores.score[mask].tolist()
@@ -332,9 +333,10 @@ def get_scores(exp_ids, classifier='MultinomialNB', cv_folds=25):
 
     for exp_number in exp_ids:
         composer = '%d-%s' % (exp_number, get_composer_name(exp_number))
-        composers.extend([composer] * cv_folds)
         scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
-        data.extend(scores)
+        if scores:
+            composers.extend([composer] * cv_folds)
+            data.extend(scores)
     return data, composers
 
 

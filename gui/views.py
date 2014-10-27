@@ -71,7 +71,10 @@ def show_current_selection(request, allow_pruning=False):
         for field in header:
             if 'vectors__' in field:
                 # need to follow foreign key
-                row.append(getattr(exp.vectors, field.split('__')[1]))
+                if exp.vectors:
+                    row.append(getattr(exp.vectors, field.split('__')[1]))
+                else:
+                    row.append(None)
             else:
                 row.append(getattr(exp, field))
         rows.append(row)

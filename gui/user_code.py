@@ -1,11 +1,13 @@
 from io import BytesIO
 import base64
 import re
+from configobj import ConfigObj
 
 import matplotlib as mpl
 
 mpl.use('Agg')  # for running on headless servers
 
+import validate
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np
@@ -20,23 +22,47 @@ CLASSIFIER = 'MultinomialNB'
 METRIC = 'accuracy'
 
 
+def parse_config_file(conf_file):
+    # copied from thesisgen
+    config = ConfigObj(conf_file, configspec='confrc')
+    validator = validate.Validator()
+    result = config.validate(validator)
+    # if not result:
+    # print('Invalid configuration')
+    # sys.exit(1)
+    return config
+
+
+config = parse_config_file('output.conf')
+
+
 def get_tables(exp_ids):
-    return [
-        get_performance_table(exp_ids),
-        # get_significance_table(exp_ids)[0],
-    ] if exp_ids else []
+    res = []
+    if not exp_ids:
+        return res
+    if config['performance_table']:
+        res.append(get_performance_table(exp_ids))
+    if config['significance_table']:
+        res.append(get_significance_table(exp_ids)[0])
+    return res
 
 
 def get_static_figures(exp_ids):
-    return [
-        "static/figures/stats-exp%d-0.png" % n for n in exp_ids
-    ] if exp_ids else []
+    if config['static_figures'] and exp_ids:
+        return ["static/figures/stats-exp%d-0.png" % n for n in exp_ids]
+    else:
+        return []
 
 
 def get_generated_figures(exp_ids):
-    return [] # todo this is where we control what information is diplayed to the client
-    # return [figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids)))] if exp_ids else []
-    # get_r2_correlation_plot(exp_ids)
+    if not exp_ids:
+        return []
+    res = []
+    if config['r2_correlation']:
+        res.append(get_r2_correlation_plot(exp_ids))
+    if config['significance_diagram']:
+        res.append(figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids))))
+    return res
 
 
 def populate_manually():
@@ -267,8 +293,8 @@ def get_performance_table(exp_ids):
         results = Results.objects.get(id=exp_id, classifier=CLASSIFIER)
         # todo handle missing results better
         # except DoesNotExist:
-        #     # table or result does not exist
-        #     print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
+        # # table or result does not exist
+        # print('skipping table %d and classifier %s' % (exp_id, CLASSIFIER))
         #     continue
 
         score_mean, score_std = results.get_performance_info(METRIC)

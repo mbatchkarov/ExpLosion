@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
 
 from gui.models import Experiment, Vectors, Table
+from gui.user_code import get_tables, get_generated_figures, get_static_figures
 
 excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
 excluded_vector_columns = ['id', 'can_build', 'path', 'unlabelled_percentage', 'modified', 'size']
@@ -33,8 +34,7 @@ def demo(request):
     return render_to_response('demo.html')
 
 
-def analyse(request, get_tables=lambda foo: [], get_generated_figures=lambda foo: [],
-            get_static_figures=lambda foo: []):
+def analyse(request):
     response = HttpResponse()
 
     exp_ids = request.session.get('groups', [])

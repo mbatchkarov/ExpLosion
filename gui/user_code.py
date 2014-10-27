@@ -300,7 +300,11 @@ def get_performance_table(exp_ids):
         # continue
 
         score_mean, score_std = results.get_performance_info(METRIC_DB)
-        vectors_id = Experiment.objects.get(id=exp_id).vectors.id
+        try:
+            vectors_id = Experiment.objects.get(id=exp_id).vectors.id
+        except AttributeError:
+            # vectors may be none, and in that case there is no id
+            vectors_id = None
 
         all_data.append([exp_id, vectors_id, CLASSIFIER, composer_name,
                          '{:.2}'.format(np.mean(score_mean)),
@@ -379,4 +383,5 @@ def plot_regression_line(ax, x, y, weights):
 
 
 def get_composer_name(n):
-    return Experiment.objects.get(id=n).vectors.composer
+    vectors = Experiment.objects.get(id=n).vectors
+    return vectors.composer if vectors else None

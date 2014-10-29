@@ -19,8 +19,8 @@
         <div id="{{ key }}">
             {{ key }} :
             {% for value in values %}
-                &nbsp <label> <input type="checkbox" name="{{ value }}"> {{ value }}  </label>
-{#                {{ c }}#}
+                &nbsp <input type="checkbox" name="{{ value }}" > {{ value }}
+                {{ c }}
             {% endfor %}
         </div>
     {% endfor %}

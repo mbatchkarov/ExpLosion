@@ -53,7 +53,7 @@ def analyse(request):
 
 
 @never_cache
-def show_current_selection(request, allow_pruning=False):
+def show_current_selection(request, allow_pruning=True):
     # render all currently requested experiments
     existing_experiments = [foo for foo in request.session.get('groups', [])]
     # representative_experiment_ids = [foo[0] for foo in existing_experiments]

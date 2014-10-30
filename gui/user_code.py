@@ -22,9 +22,10 @@ from gui.models import Experiment, Table, Results
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
-METRIC_DB = 'accuracy'
-METRIC_CSV_FILE = 'accuracy_score'
-
+# METRIC_DB = 'accuracy'
+# METRIC_CSV_FILE = 'accuracy_score'
+METRIC_DB = 'macrof1'
+METRIC_CSV_FILE = 'macroavg_f1'
 
 def parse_config_file(conf_file):
     # copied from thesisgen

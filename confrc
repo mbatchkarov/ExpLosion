@@ -1,0 +1,5 @@
+performance_table=boolean()
+significance_table=boolean()
+static_figures=boolean()
+r2_correlation=boolean()
+significance_diagram=boolean()

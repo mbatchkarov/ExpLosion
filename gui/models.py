@@ -44,7 +44,6 @@ class Results(models.Model):
 class Vectors(models.Model):
     id = models.IntegerField(primary_key=True)
     algorithm = models.CharField(max_length=255)
-    can_build = models.IntegerField()
     dimensionality = models.IntegerField(blank=True, null=True)
     unlabelled_percentage = models.IntegerField(blank=True, null=True)
     unlabelled = models.CharField(max_length=255, blank=True)

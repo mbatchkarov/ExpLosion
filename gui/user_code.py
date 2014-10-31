@@ -80,7 +80,6 @@ def populate_manually():
     # '5,gigaw,R2,0,Add,AN_NN,dependencies,0,1,0,SignifiedOnlyFeatureHandler' ,
     # '136,word2vec,MR,100,Right,AN_NN,word2vec,0,1,0,SignifiedOnlyFeatureHandler',
     for line in table_descr:
-        print(line)
         num, unlab, lab, svd, comp, doc_feats, thes_feats, baronified, \
         use_similarity, use_random_neighbours, decode_handler = line.split(',')
         exp = Experiment(id=num, composer=comp, labelled=lab,

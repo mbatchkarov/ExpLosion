@@ -51,6 +51,7 @@ class Vectors(models.Model):
     composer = models.CharField(max_length=255)
     modified = models.DateField(blank=True, null=True)
     size = models.IntegerField(blank=True, null=True)
+    rep = models.IntegerField()
 
     def __str__(self):
         return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer, self.dimensionality])
@@ -58,44 +59,6 @@ class Vectors(models.Model):
     class Meta:
         managed = False
         db_table = 'vectors'
-
-
-cached_models = {}
-
-
-# def get_results_table(param):
-# """
-#     Thesisgenerator-specific model for extracting results out of the database
-#     From http://stackoverflow.com/questions/5036357/single-django-model-multiple-tables
-#     """
-#
-#     class MyClassMetaclass(models.base.ModelBase):
-#         def __new__(cls, name, bases, attrs):
-#             if param not in cached_models:
-#                 cached_models[param] = models.base.ModelBase.__new__(cls, 'data%d' % param, bases, attrs)
-#             return cached_models[param]
-#
-#     class ThesisgeneratorPerformanceResult(models.Model, metaclass=MyClassMetaclass):
-#         __metaclass__ = MyClassMetaclass
-#
-#         id = models.AutoField(primary_key=True)
-#         name = models.TextField(blank=True)
-#         git_hash = models.TextField(blank=True)
-#         consolidation_date = models.DateTimeField()
-#         cv_folds = models.IntegerField(blank=True, null=True)
-#         sample_size = models.IntegerField(blank=True, null=True)
-#         classifier = models.TextField(blank=True)
-#         metric = models.TextField(blank=True)
-#         score_mean = models.FloatField(blank=True, null=True)
-#         score_std = models.FloatField(blank=True, null=True)
-#
-#         class Meta:
-#             db_table = 'data%d' % param
-#             ordering = ['sample_size']
-#
-#
-#
-#     return ThesisgeneratorPerformanceResult
 
 
 class Table():

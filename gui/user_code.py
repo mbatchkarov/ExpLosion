@@ -1,10 +1,10 @@
 from io import BytesIO
 import base64
-import os
 import re
 from configobj import ConfigObj
 
 import matplotlib as mpl
+from thesisgenerator.utils.output_utils import get_scores, get_vectors_field
 
 mpl.use('Agg')  # for running on headless servers
 
@@ -16,8 +16,6 @@ import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
-
-import gui
 from gui.models import Experiment, Table, Results
 
 CLASSIFIER = 'MultinomialNB'
@@ -26,6 +24,7 @@ CLASSIFIER = 'MultinomialNB'
 # METRIC_CSV_FILE = 'accuracy_score'
 METRIC_DB = 'macrof1'
 METRIC_CSV_FILE = 'macroavg_f1'
+
 
 def parse_config_file(conf_file):
     # copied from thesisgen
@@ -251,17 +250,22 @@ def make_df(table:Table, index_cols=None):
 def get_demsar_params(exp_ids):
     scores_table = make_df(get_performance_table(exp_ids), 'exp id').convert_objects(convert_numeric=True)
 
-    data, composers = get_scores(exp_ids)
+    data, folds, exp_ids = get_scores(exp_ids)
+    composers = ['%s-%s' % (a, b) for a, b in zip(get_vectors_field(exp_ids, 'algorithm'), \
+                                                  get_vectors_field(exp_ids, 'composer'))]
+    short_composers = ['%s-%s' % (a, b) for a, b in zip(get_vectors_field(exp_ids, 'algorithm', cv_folds=1), \
+                                                        get_vectors_field(exp_ids, 'composer', cv_folds=1))]
     sign_table, _ = get_significance_table(exp_ids, data=data, composers=composers)
     sign_table = make_df(sign_table)
 
-    return sign_table, np.array(scores_table.composer), np.array(scores_table[METRIC_DB])
+    return sign_table, np.array(short_composers), np.array(scores_table[METRIC_DB])
 
 
 def get_demsar_diagram(significance_df, names, scores):
     idx = np.argsort(scores)
     scores = list(scores[idx])
     names = list(names[idx])
+    print(significance_df)
 
     def get_insignificant_pairs(*args):
         mylist = []
@@ -272,9 +276,15 @@ def get_demsar_diagram(significance_df, names, scores):
                 mylist.append((names.index(a), names.index(b)))
         return sorted(set(tuple(sorted(x)) for x in mylist))
 
+    # debug info
+    from critical_difference.plot import merge_nonsignificant_cliques
+
+    print(get_insignificant_pairs())
+    print(merge_nonsignificant_cliques(get_insignificant_pairs()))
+
     fig = do_plot(scores, get_insignificant_pairs, names)
     fig.set_canvas(plt.gcf().canvas)
-    filename = "%s.png" % ('_'.join(sorted(set(names))))
+    filename = "%s.png" % ('_'.join(sorted(set(names))))[:200] # there's a limit on that
     print('Saving figure to %s' % filename)
     print_figure(fig, filename, format='png')
     return fig
@@ -311,39 +321,37 @@ def get_performance_table(exp_ids):
     return table
 
 
-def _get_cv_scores_single_experiment(n, classifier):
-    # human-readable name
-    composer_name = get_composer_name(n)
-    # get scores for each CV run- these aren't in the database
-    # only at size 500
-    outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
-    if not os.path.exists(outfile):
-        print('Output file for exp %d missing' % n)
-        return None, '%d-%s' % (n, composer_name)
-    scores = pd.read_csv(outfile)
-    mask = (scores.classifier == classifier) & (scores.metric == METRIC_CSV_FILE)
-    ordered_scores = scores.score[mask].tolist()
-    return ordered_scores, '%d-%s' % (n, composer_name)
-
-
-def get_scores(exp_ids, classifier='MultinomialNB', cv_folds=25):
-    # get human-readable labels for the table
-    data = []
-    composers = []
-
-    for exp_number in exp_ids:
-        composer = '%d-%s' % (exp_number, get_composer_name(exp_number))
-        scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
-        if scores:
-            composers.extend([composer] * cv_folds)
-            data.extend(scores)
-    return data, composers
+# def _get_cv_scores_single_experiment(n, classifier):
+# # human-readable name
+# composer_name = get_composer_name(n)
+#     # get scores for each CV run- these aren't in the database
+#     # only at size 500
+#     outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
+#     if not os.path.exists(outfile):
+#         print('Output file for exp %d missing' % n)
+#         return None, '%d-%s' % (n, composer_name)
+#     scores = pd.read_csv(outfile)
+#     mask = (scores.classifier == classifier) & (scores.metric == METRIC_CSV_FILE)
+#     ordered_scores = scores.score[mask].tolist()
+#     return ordered_scores, '%d-%s' % (n, composer_name)
+# def get_scores(exp_ids, classifier='MultinomialNB', cv_folds=25):
+#     # get human-readable labels for the table
+#     data = []
+#     composers = []
+#
+#     for exp_number in exp_ids:
+#         composer = '%d-%s' % (exp_number, get_composer_name(exp_number))
+#         scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
+#         if scores:
+#             composers.extend([composer] * cv_folds)
+#             data.extend(scores)
+#     return data, composers
 
 
 def get_significance_table(exp_ids, classifier='MultinomialNB', cv_folds=25, data=None, composers=None):
     print('Running significance for experiments %r' % exp_ids)
     if data is None and composers is None:
-        data, composers = get_scores(exp_ids, classifier=classifier, cv_folds=cv_folds)
+        data, composers, _ = get_scores(exp_ids, classifier=classifier, cv_folds=cv_folds)
 
     if len(set(composers)) < 2:
         raise ValueError('Cannot run significance test on less than 2 methods: %r' % set(composers))

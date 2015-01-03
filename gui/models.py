@@ -45,7 +45,7 @@ class Vectors(models.Model):
     id = models.IntegerField(primary_key=True)
     algorithm = models.CharField(max_length=255)
     dimensionality = models.IntegerField(blank=True, null=True)
-    unlabelled_percentage = models.IntegerField(blank=True, null=True)
+    unlabelled_percentage = models.FloatField(blank=True, null=True)
     unlabelled = models.CharField(max_length=255, blank=True)
     path = models.CharField(max_length=255, blank=True)
     composer = models.CharField(max_length=255)

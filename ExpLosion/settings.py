@@ -45,11 +45,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Application definition
 
 INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.messages',
     'django.contrib.staticfiles',
     'gui'
 )
@@ -74,12 +70,10 @@ WSGI_APPLICATION = 'ExpLosion.wsgi.application'
 config = ConfigObj('./db-credentials')
 DATABASES = {
     'default': {
-        'ENGINE':'django.db.backends.mysql',
-        'NAME': config['db'],
-        'USER': config['user'],
-        'PASSWORD': config['pass'],
-        'HOST': config['server'],
-        'PORT': '3306',
+        # this db is managed by peewee, this django app is a read-only client
+        # todo remember to run manage.py syncdb/migrate to create django_sessions table
+        'ENGINE':'django.db.backends.sqlite3',
+        'NAME': '../thesisgenerator/db.sqlite',
     }
 }
 

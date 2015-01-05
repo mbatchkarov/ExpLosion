@@ -13,6 +13,8 @@ class Experiment(models.Model):
     labelled = models.CharField(max_length=255)
     date_ran = models.DateField(blank=True, null=True)
     git_hash = models.CharField(max_length=255, blank=True)
+    k = models.IntegerField()  # how many neighbours entries are replaced with at decode time
+    neighbour_strategy = models.CharField(max_length=255)
 
     def __str__(self):
         basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))

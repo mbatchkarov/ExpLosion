@@ -261,7 +261,7 @@ def get_demsar_params(exp_ids):
     return sign_table, np.array(short_composers), np.array(scores_table[METRIC_DB])
 
 
-def get_demsar_diagram(significance_df, names, scores):
+def get_demsar_diagram(significance_df, names, scores, filename=None):
     idx = np.argsort(scores)
     scores = list(scores[idx])
     names = list(names[idx])
@@ -284,7 +284,8 @@ def get_demsar_diagram(significance_df, names, scores):
 
     fig = do_plot(scores, get_insignificant_pairs, names)
     fig.set_canvas(plt.gcf().canvas)
-    filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200] # there's a limit on that
+    if not filename:
+        filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that
     print('Saving figure to %s' % filename)
     print_figure(fig, filename, format='png')
     return fig
@@ -324,7 +325,7 @@ def get_performance_table(exp_ids):
 # def _get_cv_scores_single_experiment(n, classifier):
 # # human-readable name
 # composer_name = get_composer_name(n)
-#     # get scores for each CV run- these aren't in the database
+# # get scores for each CV run- these aren't in the database
 #     # only at size 500
 #     outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
 #     if not os.path.exists(outfile):

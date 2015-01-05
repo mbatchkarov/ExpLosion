@@ -284,7 +284,7 @@ def get_demsar_diagram(significance_df, names, scores):
 
     fig = do_plot(scores, get_insignificant_pairs, names)
     fig.set_canvas(plt.gcf().canvas)
-    filename = "%s.png" % ('_'.join(sorted(set(names))))[:200] # there's a limit on that
+    filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200] # there's a limit on that
     print('Saving figure to %s' % filename)
     print_figure(fig, filename, format='png')
     return fig

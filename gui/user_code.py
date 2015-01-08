@@ -4,7 +4,7 @@ import re
 from configobj import ConfigObj
 
 import matplotlib as mpl
-from thesisgenerator.utils.output_utils import get_scores, get_vectors_field
+from thesisgenerator.utils.output_utils import get_scores
 
 mpl.use('Agg')  # for running on headless servers
 
@@ -17,6 +17,7 @@ from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
 from gui.models import Experiment, Table, Results, FullResults
+from gui.utils import ABBREVIATIONS
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -264,11 +265,12 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
 
     data, _, exp_ids = get_scores(exp_ids)
     names, full_names = [], []
-    for id in exp_ids:
-        e = Experiment.objects.values(*name_format).get(id=id)
-        names.append('-'.join(str(x) for x in e.values()))
-        cv_folds = FullResults.objects.filter(id=id, classifier=CLASSIFIER).count()
-        full_names.extend(['-'.join(str(x) for x in e.values())] * cv_folds)
+    for eid in exp_ids:
+        e = Experiment.objects.values_list(*name_format).get(id=eid)
+        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
+        names.append(this_name)
+        cv_folds = FullResults.objects.filter(id=eid, classifier=CLASSIFIER).count()
+        full_names.extend([this_name] * cv_folds)
 
     sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)
     sign_table = make_df(sign_table)

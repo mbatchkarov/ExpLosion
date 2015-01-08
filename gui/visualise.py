@@ -46,8 +46,9 @@ def get_interesting_experiments():
 
     # some learning curves in an IPython notebook
 
+
 for i, query_dict in enumerate(get_interesting_experiments()):
     exp_ids = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     print(exp_ids)
-    get_demsar_diagram(*get_demsar_params(exp_ids, ['id']),
+    get_demsar_diagram(*get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer', 'id']),
                        filename='img%d.png' % i)

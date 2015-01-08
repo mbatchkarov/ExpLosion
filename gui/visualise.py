@@ -61,4 +61,4 @@ for i, (query_dict, fields) in enumerate(get_interesting_experiments()):
     exp_ids = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     print(exp_ids)
     get_demsar_diagram(*get_demsar_params(exp_ids, name_format=fields if fields else default_fields),
-                       filename='img%d.png' % i)
+                       filename='demsar%d.pdf' % i)

@@ -305,7 +305,7 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
     if not filename:
         filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that
     print('Saving figure to %s' % filename)
-    print_figure(fig, filename, format='png')
+    print_figure(fig, filename, format='pdf', dpi=300)
     return fig
 
 

@@ -42,6 +42,21 @@ class Results(models.Model):
         managed = False
         db_table = 'results'
 
+class FullResults(models.Model):
+    id = models.ForeignKey(Experiment, primary_key=True)
+    classifier = models.CharField(max_length=255)
+    cv_fold = models.IntegerField()
+    accuracy_score = models.FloatField()
+    macroavg_f1 = models.FloatField()
+    microavg_f1 = models.FloatField()
+    macroavg_rec = models.FloatField()
+    microavg_rec = models.FloatField()
+    microavg_prec = models.FloatField()
+    macroavg_prec = models.FloatField()
+
+    class Meta:
+        managed = False
+        db_table = 'fullresults'
 
 class Vectors(models.Model):
     id = models.IntegerField(primary_key=True)

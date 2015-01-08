@@ -6,8 +6,9 @@ from gui.models import Experiment
 
 
 def get_interesting_experiments():
-    # baseline- signifier
-    yield {'decode_handler': 'BaseFeatureHandler'}
+    # baseline- signifier. That didn't work for TechTC data, so ignore it
+    yield {'decode_handler': 'BaseFeatureHandler',
+           'labelled__in': ['amazon_grouped-tagged', 'reuters21578/r8-tagged-grouped']}
     # baseline- hybrid
     yield {'decode_handler': 'SignifierSignifiedFeatureHandler'}
 
@@ -48,4 +49,5 @@ def get_interesting_experiments():
 for i, query_dict in enumerate(get_interesting_experiments()):
     exp_ids = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     print(exp_ids)
-    get_demsar_diagram(*get_demsar_params(exp_ids), filename='img%d.png' % i)
+    get_demsar_diagram(*get_demsar_params(exp_ids, ['id']),
+                       filename='img%d.png' % i)

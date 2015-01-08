@@ -16,7 +16,7 @@ import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
-from gui.models import Experiment, Table, Results
+from gui.models import Experiment, Table, Results, FullResults
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -247,25 +247,47 @@ def make_df(table:Table, index_cols=None):
     return df
 
 
-def get_demsar_params(exp_ids):
+def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
+    """
+    Gets parameters for `get_demsar_diagram`. Methods whose results are not in DB are dropped silently
+    :param exp_ids: ids of experiments to look up
+    :param name_format: how to form a human-readable summary of each of the competing methods.
+    The fields listed here are extracted from their DB entry and concatenated. For example, ['id'] will name
+    each method with its 'id' field, and ['vectors__algorithm'] will name each method with the value of
+    `vectors.algorithm`
+    :return: tuple of:
+                - pandas.DataFrame of significance test
+                - names of the methods compared, as specified by `name_format`
+                - mean scores of the methods compared
+    """
     scores_table = make_df(get_performance_table(exp_ids), 'exp id').convert_objects(convert_numeric=True)
 
-    data, folds, exp_ids = get_scores(exp_ids)
-    composers = ['%s-%s' % (a, b) for a, b in zip(get_vectors_field(exp_ids, 'algorithm'), \
-                                                  get_vectors_field(exp_ids, 'composer'))]
-    short_composers = ['%s-%s' % (a, b) for a, b in zip(get_vectors_field(exp_ids, 'algorithm', cv_folds=1), \
-                                                        get_vectors_field(exp_ids, 'composer', cv_folds=1))]
-    sign_table, _ = get_significance_table(exp_ids, data=data, composers=composers)
+    data, _, exp_ids = get_scores(exp_ids)
+    names, full_names = [], []
+    for id in exp_ids:
+        e = Experiment.objects.values(*name_format).get(id=id)
+        names.append('-'.join(str(x) for x in e.values()))
+        cv_folds = FullResults.objects.filter(id=id, classifier=CLASSIFIER).count()
+        full_names.extend(['-'.join(str(x) for x in e.values())] * cv_folds)
+
+    sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)
     sign_table = make_df(sign_table)
 
-    return sign_table, np.array(short_composers), np.array(scores_table[METRIC_DB])
+    return sign_table, np.array(names), np.array(scores_table[METRIC_DB])
 
 
-def get_demsar_diagram(significance_df, names, scores, filename=None):
-    idx = np.argsort(scores)
-    scores = list(scores[idx])
+def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
+    """
+
+    :param significance_df: pd.DataFrame made out of statsmodels significance table
+    :param names: names of competing methods, len(names) == len(mean_scores)
+    :param mean_scores: mean scores of each competing methods (one per method)
+    :param filename: where to output image to
+    :return:
+    """
+    idx = np.argsort(mean_scores)
+    mean_scores = list(mean_scores[idx])
     names = list(names[idx])
-    print(significance_df)
 
     def get_insignificant_pairs(*args):
         mylist = []
@@ -276,13 +298,7 @@ def get_demsar_diagram(significance_df, names, scores, filename=None):
                 mylist.append((names.index(a), names.index(b)))
         return sorted(set(tuple(sorted(x)) for x in mylist))
 
-    # debug info
-    from critical_difference.plot import merge_nonsignificant_cliques
-
-    print(get_insignificant_pairs())
-    print(merge_nonsignificant_cliques(get_insignificant_pairs()))
-
-    fig = do_plot(scores, get_insignificant_pairs, names)
+    fig = do_plot(mean_scores, get_insignificant_pairs, names)
     fig.set_canvas(plt.gcf().canvas)
     if not filename:
         filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that
@@ -322,41 +338,22 @@ def get_performance_table(exp_ids):
     return table
 
 
-# def _get_cv_scores_single_experiment(n, classifier):
-# # human-readable name
-# composer_name = get_composer_name(n)
-# # get scores for each CV run- these aren't in the database
-#     # only at size 500
-#     outfile = '../thesisgenerator/conf/exp{0}/output/exp{0}-0.out-raw.csv'.format(n)
-#     if not os.path.exists(outfile):
-#         print('Output file for exp %d missing' % n)
-#         return None, '%d-%s' % (n, composer_name)
-#     scores = pd.read_csv(outfile)
-#     mask = (scores.classifier == classifier) & (scores.metric == METRIC_CSV_FILE)
-#     ordered_scores = scores.score[mask].tolist()
-#     return ordered_scores, '%d-%s' % (n, composer_name)
-# def get_scores(exp_ids, classifier='MultinomialNB', cv_folds=25):
-#     # get human-readable labels for the table
-#     data = []
-#     composers = []
-#
-#     for exp_number in exp_ids:
-#         composer = '%d-%s' % (exp_number, get_composer_name(exp_number))
-#         scores, _ = _get_cv_scores_single_experiment(exp_number, classifier)
-#         if scores:
-#             composers.extend([composer] * cv_folds)
-#             data.extend(scores)
-#     return data, composers
+def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names=None):
+    """
 
-
-def get_significance_table(exp_ids, classifier='MultinomialNB', cv_folds=25, data=None, composers=None):
+    :param exp_ids:
+    :param classifier:
+    :param data: array of all scores (per method, per CV fold)
+    :param names: array of methos names that correspond to `data`, eg [a, a, b, b, c, c] for 2 methods, 2 fold CV
+    :return: :raise ValueError:
+    """
     print('Running significance for experiments %r' % exp_ids)
-    if data is None and composers is None:
-        data, composers, _ = get_scores(exp_ids, classifier=classifier, cv_folds=cv_folds)
+    if data is None and names is None:
+        data, names, exp_ids = get_scores(exp_ids, classifier=classifier)
 
-    if len(set(composers)) < 2:
-        raise ValueError('Cannot run significance test on less than 2 methods: %r' % set(composers))
-    mod = MultiComparison(np.array(data), composers, group_order=sorted(set(composers)))
+    if len(set(names)) < 2:
+        raise ValueError('Cannot run significance test on less than 2 methods: %r' % set(names))
+    mod = MultiComparison(np.array(data), names, group_order=sorted(set(names)))
     a = mod.tukeyhsd(alpha=0.01)
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists
 
@@ -377,7 +374,7 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', cv_folds=25, dat
     header[-1] = 'significant'
     rows = [row.split() for row in data[4:-1]]
 
-    return Table(header, rows, desc), sorted(set(composers))
+    return Table(header, rows, desc), sorted(set(names))
 
 
 def plot_regression_line(ax, x, y, weights):

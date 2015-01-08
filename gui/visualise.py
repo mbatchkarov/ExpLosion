@@ -22,25 +22,25 @@ def get_interesting_experiments():
 
     # count vs windows, with and w/o SVD, group by SVD dims
     for dims in [0, 100]:
-        yield {'labelled__in': ['amazon_grouped-tagged'],
+        yield {'labelled': 'amazon_grouped-tagged',
                'vectors__algorithm__in': ['count_windows', 'count_dependencies'],
-               'vectors__dimensionality__in': dims}
+               'vectors__dimensionality': dims}
 
     # using similarity as psedo term count
-    yield {'vectors__unlabelled__in': ['gigaw'],
-           'neighbour_strategy__in': ['linear'],
-           'vectors__rep__in': ['0'],
-           'labelled__in': ['reuters21578/r8-tagged-grouped'],
-           'document_features__in': ['AN_NN'],
-           'vectors__algorithm__in': ['word2vec'],
-           'k__in': ['3'],
-           'vectors__unlabelled_percentage__in': ['100.0'],
+    yield {'vectors__unlabelled': 'gigaw',
+           'neighbour_strategy': 'linear',
+           'vectors__rep': '0',
+           'labelled': 'reuters21578/r8-tagged-grouped',
+           'document_features': 'AN_NN',
+           'vectors__algorithm': 'word2vec',
+           'k': '3',
+           'vectors__unlabelled_percentage': '100.0',
            'use_similarity__in': ['0', '1']}
 
     # AN vs NN only
-    yield {'vectors__algorithm__in': ['word2vec'],
-           'vectors__unlabelled_percentage__in': ['100.0'],
-           'vectors__rep__in': ['0'],
+    yield {'vectors__algorithm': 'word2vec',
+           'vectors__unlabelled_percentage': '100.0',
+           'vectors__rep': '0',
            'document_features__in': ['AN', 'NN']}
 
     # some learning curves in an IPython notebook

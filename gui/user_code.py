@@ -300,7 +300,7 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
                 mylist.append((names.index(a), names.index(b)))
         return sorted(set(tuple(sorted(x)) for x in mylist))
 
-    fig = do_plot(mean_scores, get_insignificant_pairs, names)
+    fig = do_plot(mean_scores, get_insignificant_pairs, names, arrow_vgap=0.15, link_vgap=.08, link_voffset=0.1)
     fig.set_canvas(plt.gcf().canvas)
     if not filename:
         filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that

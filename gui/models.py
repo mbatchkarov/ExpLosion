@@ -20,6 +20,26 @@ class Experiment(models.Model):
         basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))
         return '%s: %s' % (self.id, basic_settings)
 
+    def __eq__(self, other):
+        if not isinstance(other, Experiment):
+            return False
+        return (
+            self.document_features == other.document_features and
+            self.use_similarity == other.use_similarity and
+            self.use_random_neighbours == other.use_random_neighbours and
+            self.decode_handler == other.decode_handler and
+            self.vectors.id == other.vectors.id and
+            self.labelled == other.labelled and
+            self.k == other.k and
+            self.neighbour_strategy == other.neighbour_strategy
+        )
+
+    def __hash__(self):
+        return hash((self.document_features, self.use_similarity,
+                     self.use_random_neighbours, self.decode_handler,
+                     self.vectors.id, self.labelled,
+                     self.k, self.neighbour_strategy))
+
     class Meta:
         managed = False
         db_table = 'classificationexperiment'
@@ -36,11 +56,13 @@ class Results(models.Model):
     macrof1_std = models.FloatField()
 
     def get_performance_info(self, metric):
-        return getattr(self, '%s_mean' % metric), getattr(self, '%s_std' % metric)
+        return round(getattr(self, '%s_mean' % metric), 2), \
+               round(getattr(self, '%s_std' % metric), 2)
 
     class Meta:
         managed = False
         db_table = 'results'
+
 
 class FullResults(models.Model):
     id = models.ForeignKey(Experiment, primary_key=True)
@@ -57,6 +79,7 @@ class FullResults(models.Model):
     class Meta:
         managed = False
         db_table = 'fullresults'
+
 
 class Vectors(models.Model):
     id = models.IntegerField(primary_key=True)

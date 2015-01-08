@@ -46,7 +46,7 @@ def get_tables(exp_ids):
     if not exp_ids:
         return res
     if config['performance_table']:
-        res.append(get_performance_table(exp_ids))
+        res.append(get_performance_table(exp_ids)[0])
     if config['significance_table']:
         res.append(get_significance_table(exp_ids)[0])
     return res
@@ -261,7 +261,8 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
                 - names of the methods compared, as specified by `name_format`
                 - mean scores of the methods compared
     """
-    scores_table = make_df(get_performance_table(exp_ids), 'exp id').convert_objects(convert_numeric=True)
+    table, exp_ids = get_performance_table(exp_ids)
+    scores_table = make_df(table, 'exp id').convert_objects(convert_numeric=True)
 
     data, _, exp_ids = get_scores(exp_ids)
     names, full_names = [], []
@@ -321,6 +322,12 @@ def get_performance_table(exp_ids):
     # for exp_number in exp_list:
 
     all_data = []
+    # remove duplicate experiments
+    all_experiments = set(Experiment.objects.filter(id__in=exp_ids))
+    old_exp_ids = exp_ids
+    exp_ids = set(x.id for x in all_experiments)
+    if len(exp_ids) != len(old_exp_ids):
+        print('REMOVED %d DUPLICATE EXPERIMENTS' % (len(old_exp_ids) - len(exp_ids)))
     for exp_id in exp_ids:
         composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
         results = Results.objects.filter(id=exp_id, classifier=CLASSIFIER)
@@ -337,7 +344,7 @@ def get_performance_table(exp_ids):
     table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'std'],
                   all_data,
                   'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
-    return table
+    return table, exp_ids
 
 
 def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names=None):

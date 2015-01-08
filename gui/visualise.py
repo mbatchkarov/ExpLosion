@@ -53,6 +53,22 @@ def get_interesting_experiments():
            'vectors__rep': '0',
            'document_features__in': ['AN', 'NN']}, None
     print('------------------------------------')
+
+    # best count models (deps, no SVD, Add/Left composers only) vs neural models
+    yield {'vectors__composer__in': ['Add', 'Left'],
+           'vectors__algorithm__in': ['count_dependencies', 'turian', 'glove', 'word2vec'],
+           'labelled': 'amazon_grouped-tagged',
+           'document_features': 'AN_NN',
+           'neighbour_strategy': 'linear',
+           'k': '3',
+           'use_similarity': '0',
+           'vectors__unlabelled_percentage': '100.0',
+           'decode_handler': 'SignifiedOnlyFeatureHandler',
+           'vectors__dimensionality': '100',
+           'vectors__rep': '0'}, None
+    print('------------------------------------')
+
+
     # some learning curves in an IPython notebook
 
 

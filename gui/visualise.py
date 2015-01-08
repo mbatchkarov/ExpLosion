@@ -9,11 +9,14 @@ def get_interesting_experiments():
     # baseline- signifier. That didn't work for TechTC data, so ignore it
     yield {'decode_handler': 'BaseFeatureHandler',
            'labelled__in': ['amazon_grouped-tagged', 'reuters21578/r8-tagged-grouped']}, ['labelled']
+    print('------------------------------------')
     # baseline- hybrid
     yield {'decode_handler': 'SignifierSignifiedFeatureHandler'}, None
+    print('------------------------------------')
 
     # random neigh/vect baseline
     yield {'vectors__algorithm__in': ['random_neigh', 'random_vect']}, ['labelled', 'vectors__algorithm']
+    print('------------------------------------')
 
     # effect of SVD on count vectors, group by feature type
     for feature_type in ['windows', 'dependencies']:
@@ -21,6 +24,7 @@ def get_interesting_experiments():
                'vectors__algorithm': 'count_%s' % feature_type,
                'vectors__dimensionality__in': ['0', '100']}, \
               ['vectors__algorithm', 'vectors__dimensionality', 'vectors__composer']
+    print('------------------------------------')
 
     # count vs windows, with and w/o SVD, group by SVD dims
     for dims in [0, 100]:
@@ -28,6 +32,7 @@ def get_interesting_experiments():
                'vectors__algorithm__in': ['count_windows', 'count_dependencies'],
                'vectors__dimensionality': dims}, \
               ['vectors__algorithm', 'vectors__dimensionality', 'vectors__composer']
+    print('------------------------------------')
 
     # NOTE: THESE HAVE ONLY BEEN DONE ON REUTERS DATA, probably unreliable?
     # using similarity as psedo term count
@@ -40,13 +45,14 @@ def get_interesting_experiments():
            'k': '3',
            'vectors__unlabelled_percentage': '100.0',
            'use_similarity__in': ['0', '1']}, None
+    print('------------------------------------')
 
     # AN vs NN only
     yield {'vectors__algorithm': 'word2vec',
            'vectors__unlabelled_percentage': '100.0',
            'vectors__rep': '0',
            'document_features__in': ['AN', 'NN']}, None
-
+    print('------------------------------------')
     # some learning curves in an IPython notebook
 
 

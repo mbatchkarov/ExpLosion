@@ -37,7 +37,7 @@ class Experiment(models.Model):
     def __hash__(self):
         return hash((self.document_features, self.use_similarity,
                      self.use_random_neighbours, self.decode_handler,
-                     self.vectors.id, self.labelled,
+                     self.vectors.id if self.vectors else None, self.labelled,
                      self.k, self.neighbour_strategy))
 
     class Meta:

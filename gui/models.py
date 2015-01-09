@@ -55,9 +55,9 @@ class Results(models.Model):
     macrof1_mean = models.FloatField()
     macrof1_std = models.FloatField()
 
-    def get_performance_info(self, metric):
-        return round(getattr(self, '%s_mean' % metric), 2), \
-               round(getattr(self, '%s_std' % metric), 2)
+    def get_performance_info(self, metric='macrof1'):
+        return round(getattr(self, '%s_mean' % metric), 6), \
+               round(getattr(self, '%s_std' % metric), 6)
 
     class Meta:
         managed = False

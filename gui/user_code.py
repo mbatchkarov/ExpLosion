@@ -339,8 +339,7 @@ def get_performance_table(exp_ids):
         score_mean, score_std = results[0].get_performance_info(METRIC_DB)
         vectors = Experiment.objects.get(id=exp_id).vectors
         all_data.append([exp_id, str(vectors), CLASSIFIER, composer_name,
-                         '{:.2}'.format(np.mean(score_mean)),
-                         '{:.2}'.format(np.mean(score_std))])
+                         np.mean(score_mean), np.mean(score_std)])
     table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'std'],
                   all_data,
                   'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')

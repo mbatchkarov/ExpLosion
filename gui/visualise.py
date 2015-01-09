@@ -55,7 +55,7 @@ def get_interesting_experiments():
     print('------------------------------------')
 
     # best count models (deps, no SVD, Add/Left composers only) vs neural models
-    yield {'vectors__composer__in': ['Add', 'Left'],
+    yield {'vectors__composer__in': ['Add', 'Left', 'Socher'],
            'vectors__algorithm__in': ['count_dependencies', 'turian', 'glove', 'word2vec'],
            'labelled': 'amazon_grouped-tagged',
            'document_features': 'AN_NN',
@@ -68,6 +68,15 @@ def get_interesting_experiments():
            'vectors__rep': 0}, None
     print('------------------------------------')
 
+    # best models (according to Amazon task) at MR task ...
+    yield {'vectors__algorithm__in': ['word2vec', 'count_dependencies'],
+           'labelled': 'movie-reviews-tagged',
+           'vectors__dimensionality': 100}, None
+
+    # ... and at one of the TechTC tasks
+    yield {'vectors__algorithm__in': ['word2vec', 'count_dependencies'],
+           'labelled': 'techtc100-clean/Exp_186330_94142-tagged',
+           'vectors__dimensionality': 100}, None
 
     # some learning curves in an IPython notebook
 

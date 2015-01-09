@@ -22,7 +22,7 @@ def get_interesting_experiments():
     for feature_type in ['windows', 'dependencies']:
         yield {'labelled': 'amazon_grouped-tagged',
                'vectors__algorithm': 'count_%s' % feature_type,
-               'vectors__dimensionality__in': ['0', '100']}, \
+               'vectors__dimensionality__in': [0, 100]}, \
               ['vectors__algorithm', 'vectors__dimensionality', 'vectors__composer']
     print('------------------------------------')
 
@@ -38,20 +38,20 @@ def get_interesting_experiments():
     # using similarity as psedo term count
     yield {'vectors__unlabelled': 'gigaw',
            'neighbour_strategy': 'linear',
-           'vectors__rep': '0',
+           'vectors__rep': 0,
            'labelled': 'reuters21578/r8-tagged-grouped',
            'document_features': 'AN_NN',
            'vectors__algorithm': 'word2vec',
-           'k': '3',
-           'vectors__unlabelled_percentage': '100.0',
-           'use_similarity__in': ['0', '1']}, None
+           'k': 3,
+           'vectors__unlabelled_percentage': 100.0,
+           'use_similarity__in': [0, 1]}, ['labelled', 'vectors__composer', 'use_similarity']
     print('------------------------------------')
 
     # AN vs NN only
     yield {'vectors__algorithm': 'word2vec',
            'vectors__unlabelled_percentage': '100.0',
-           'vectors__rep': '0',
-           'document_features__in': ['AN', 'NN']}, None
+           'vectors__rep': 0,
+           'document_features__in': ['AN', 'NN']}, ['labelled', 'vectors__composer', 'document_features']
     print('------------------------------------')
 
     # best count models (deps, no SVD, Add/Left composers only) vs neural models
@@ -60,12 +60,12 @@ def get_interesting_experiments():
            'labelled': 'amazon_grouped-tagged',
            'document_features': 'AN_NN',
            'neighbour_strategy': 'linear',
-           'k': '3',
-           'use_similarity': '0',
+           'k': 3,
+           'use_similarity': 0,
            'vectors__unlabelled_percentage': '100.0',
            'decode_handler': 'SignifiedOnlyFeatureHandler',
            'vectors__dimensionality': '100',
-           'vectors__rep': '0'}, None
+           'vectors__rep': 0}, None
     print('------------------------------------')
 
 

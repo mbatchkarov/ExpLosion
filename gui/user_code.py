@@ -305,7 +305,7 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
                   link_voffset=0.1, xlabel=METRIC_DB)
     fig.set_canvas(plt.gcf().canvas)
     if not filename:
-        filename = "sign-%s.png" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that
+        filename = "sign-%s.pdf" % ('_'.join(sorted(set(names))))[:200]  # there's a limit on that
     print('Saving figure to %s' % filename)
     print_figure(fig, filename, format='pdf', dpi=300)
     return fig

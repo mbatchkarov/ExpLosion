@@ -46,12 +46,18 @@ def get_interesting_experiments():
            'vectors__unlabelled_percentage': 100.0,
            'use_similarity__in': [0, 1]}, ['labelled', 'vectors__composer', 'use_similarity']
     print('------------------------------------')
-
+    print('fuck')
     # AN vs NN only
-    yield {'vectors__algorithm': 'word2vec',
-           'vectors__unlabelled_percentage': '100.0',
-           'vectors__rep': 0,
-           'document_features__in': ['AN', 'NN']}, ['labelled', 'vectors__composer', 'document_features']
+    for composers in [['Add', 'Mult'], ['Left', 'Right']]:
+        yield {'vectors__algorithm': 'word2vec',
+               'vectors__composer__in': composers,
+               'labelled': 'reuters21578/r8-tagged-grouped',
+               'vectors__unlabelled_percentage': '100.0',
+               'vectors__rep': 0,
+               'neighbour_strategy': 'linear',
+               'use_similarity': 0, 'k': 3,
+               'decode_handler': 'SignifiedOnlyFeatureHandler',
+               'document_features__in': ['AN', 'NN', 'AN_NN']}, ['labelled', 'vectors__composer', 'document_features']
     print('------------------------------------')
 
     # best count models (deps, no SVD, Add/Left composers only) vs neural models
@@ -62,9 +68,9 @@ def get_interesting_experiments():
            'neighbour_strategy': 'linear',
            'k': 3,
            'use_similarity': 0,
-           'vectors__unlabelled_percentage': '100.0',
+           'vectors__unlabelled_percentage': 100.0,
            'decode_handler': 'SignifiedOnlyFeatureHandler',
-           'vectors__dimensionality': '100',
+           'vectors__dimensionality': 100, # todo this is wrong, we want 0 for dependency vectors. Do this right by hand
            'vectors__rep': 0}, None
     print('------------------------------------')
 

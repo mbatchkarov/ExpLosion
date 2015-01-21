@@ -94,7 +94,8 @@ class Vectors(models.Model):
     rep = models.IntegerField()
 
     def __str__(self):
-        return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer, self.dimensionality])
+        return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer,
+                                                       self.dimensionality, self.unlabelled_percentage])
 
     class Meta:
         managed = False

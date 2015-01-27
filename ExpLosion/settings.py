@@ -14,10 +14,6 @@ from os import environ
 from configobj import ConfigObj
 from django.core.exceptions import ImproperlyConfigured
 
-import pymysql
-
-pymysql.install_as_MySQLdb()
-
 def get_env_setting(setting):
     """ Get the environment setting or return exception """
     try:

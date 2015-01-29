@@ -8,7 +8,8 @@ from gui.models import Experiment
 def get_interesting_experiments():
     # baseline- signifier. That didn't work for TechTC data, so ignore it
     yield {'decode_handler': 'BaseFeatureHandler',
-           'labelled__in': ['amazon_grouped-tagged', 'reuters21578/r8-tagged-grouped']}, ['labelled']
+           'labelled__in': ['amazon_grouped-tagged', 'aclImdb',
+                            'reuters21578/r8-tagged-grouped']}, ['labelled']
     print('------------------------------------')
     # baseline- hybrid
     yield {'decode_handler': 'SignifierSignifiedFeatureHandler'}, None
@@ -70,7 +71,8 @@ def get_interesting_experiments():
            'use_similarity': 0,
            'vectors__unlabelled_percentage': 100.0,
            'decode_handler': 'SignifiedOnlyFeatureHandler',
-           'vectors__dimensionality': 100, # todo this is wrong, we want 0 for dependency vectors. Do this right by hand
+           'vectors__dimensionality': 100,
+           # todo this is wrong, we want 0 for dependency vectors. Do this right by hand
            'vectors__rep': 0}, None
     print('------------------------------------')
 

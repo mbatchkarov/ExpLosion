@@ -15,6 +15,7 @@ class Experiment(models.Model):
     git_hash = models.CharField(max_length=255, blank=True)
     k = models.IntegerField()  # how many neighbours entries are replaced with at decode time
     neighbour_strategy = models.CharField(max_length=255)
+    noise = models.FloatField(default=0)
 
     def __str__(self):
         basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))
@@ -31,14 +32,15 @@ class Experiment(models.Model):
             self.vectors.id == other.vectors.id and
             self.labelled == other.labelled and
             self.k == other.k and
-            self.neighbour_strategy == other.neighbour_strategy
+            self.neighbour_strategy == other.neighbour_strategy and
+            abs(self.noise - other.noise) < 0.001
         )
 
     def __hash__(self):
         return hash((self.document_features, self.use_similarity,
                      self.use_random_neighbours, self.decode_handler,
                      self.vectors.id if self.vectors else None, self.labelled,
-                     self.k, self.neighbour_strategy))
+                     self.k, self.neighbour_strategy, self.noise))
 
     class Meta:
         managed = False

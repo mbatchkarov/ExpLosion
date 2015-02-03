@@ -242,6 +242,8 @@ def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
 
 
 def make_df(table:Table, index_cols=None):
+    if table is None or not table.rows:
+        return None
     df = pd.DataFrame(table.rows, columns=table.header)
     if index_cols:
         df.set_index(index_cols, inplace=True)
@@ -262,6 +264,8 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
                 - mean scores of the methods compared
     """
     table, exp_ids = get_performance_table(exp_ids)
+    if not table.rows:
+        return None, None, None
     scores_table = make_df(table, 'exp id').convert_objects(convert_numeric=True)
 
     data, _, exp_ids = get_scores(exp_ids)
@@ -288,6 +292,8 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
     :param filename: where to output image to
     :return:
     """
+    if significance_df is None:
+        return None
     idx = np.argsort(mean_scores)
     mean_scores = list(mean_scores[idx])
     names = list(names[idx])
@@ -361,7 +367,8 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names
         data, names, exp_ids = get_scores(exp_ids, classifier=classifier)
 
     if len(set(names)) < 2:
-        raise ValueError('Cannot run significance test on less than 2 methods: %r' % set(names))
+        print('Cannot run significance test on less than 2 methods: %r' % set(names))
+        return None, None
     mod = MultiComparison(np.array(data), names, group_order=sorted(set(names)))
     a = mod.tukeyhsd(alpha=0.01)
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists

@@ -12,7 +12,8 @@ def get_interesting_experiments():
                             'reuters21578/r8-tagged-grouped']}, ['labelled']
     print('------------------------------------')
     # baseline- hybrid
-    yield {'decode_handler': 'SignifierSignifiedFeatureHandler'}, None
+    yield {'decode_handler': 'SignifierSignifiedFeatureHandler',
+           'labelled': 'amazon_grouped-tagged'}, None
     print('------------------------------------')
 
     # random neigh/vect baseline

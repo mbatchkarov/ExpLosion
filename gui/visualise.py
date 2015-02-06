@@ -86,7 +86,9 @@ def get_interesting_experiments():
            'labelled': 'techtc100-clean/Exp_186330_94142-tagged',
            'vectors__dimensionality': 100}, None
 
-    # some learning curves in an IPython notebook
+    yield {'vectors__unlabelled': 'turian',
+           'labelled': 'amazon_grouped-tagged'}, None
+    # some more plots in an IPython notebook
 
 
 for i, (query_dict, fields) in enumerate(get_interesting_experiments()):

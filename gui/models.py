@@ -94,6 +94,7 @@ class Vectors(models.Model):
     modified = models.DateField(blank=True, null=True)
     size = models.IntegerField(blank=True, null=True)
     rep = models.IntegerField()
+    use_ppmi = models.BooleanField(default=0)
 
     def __str__(self):
         return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer,

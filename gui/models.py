@@ -97,8 +97,10 @@ class Vectors(models.Model):
     use_ppmi = models.BooleanField(default=0)
 
     def __str__(self):
-        return 'Vectors: ' + ','.join(str(x) for x in [self.algorithm, self.composer,
-                                                       self.dimensionality, self.unlabelled_percentage])
+        fields = ','.join((str(x) for x in [self.algorithm, self.composer,
+                                            self.dimensionality,
+                                            self.unlabelled_percentage]))
+        return 'Vectors %d:' % self.id + fields
 
     class Meta:
         managed = False

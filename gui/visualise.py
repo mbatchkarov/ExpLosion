@@ -88,7 +88,8 @@ def get_interesting_experiments():
            'vectors__dimensionality': 100}, None
 
     yield {'vectors__unlabelled': 'turian',
-           'labelled': 'amazon_grouped-tagged'}, None
+           'labelled': 'amazon_grouped-tagged',
+           'decode_handler': 'SignifiedOnlyFeatureHandler'}, None
     # some more plots in an IPython notebook
 
 

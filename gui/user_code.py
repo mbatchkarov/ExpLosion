@@ -2,11 +2,8 @@ from io import BytesIO
 import base64
 import re
 from configobj import ConfigObj
-
-import matplotlib as mpl
 from thesisgenerator.utils.output_utils import get_scores
 
-mpl.use('Agg')  # for running on headless servers
 
 import validate
 import matplotlib.pyplot as plt
@@ -60,6 +57,9 @@ def get_static_figures(exp_ids):
 
 
 def get_generated_figures(exp_ids):
+    # todo there must be a better way to do this, as it conflicts with ipython notebook
+    import matplotlib as mpl
+    mpl.use('Agg')  # for running on headless servers
     if not exp_ids:
         return []
     res = []

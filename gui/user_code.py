@@ -3,8 +3,6 @@ import base64
 import re
 from configobj import ConfigObj
 from thesisgenerator.utils.output_utils import get_scores
-
-
 import validate
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -59,6 +57,7 @@ def get_static_figures(exp_ids):
 def get_generated_figures(exp_ids):
     # todo there must be a better way to do this, as it conflicts with ipython notebook
     import matplotlib as mpl
+
     mpl.use('Agg')  # for running on headless servers
     if not exp_ids:
         return []
@@ -318,7 +317,7 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
 
 
 def get_performance_table(exp_ids):
-    print('running performance query')
+    print('running performance query for experiments %s' % exp_ids)
 
     # for exp_list in exp_lists:
     # if isinstance(exp_list, int):
@@ -329,12 +328,8 @@ def get_performance_table(exp_ids):
     # for exp_number in exp_list:
 
     all_data = []
-    # remove duplicate experiments
-    all_experiments = set(Experiment.objects.filter(id__in=exp_ids))
-    old_exp_ids = exp_ids
-    exp_ids = set(x.id for x in all_experiments)
-    if len(exp_ids) != len(old_exp_ids):
-        print('REMOVED %d DUPLICATE EXPERIMENTS' % (len(old_exp_ids) - len(exp_ids)))
+    if len(exp_ids) != len(set(exp_ids)):
+        raise ValueError('DUPLICATE EXPERIMENTS: got %s, unique: %s' % (exp_ids - set(exp_ids)))
     for exp_id in exp_ids:
         composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
         results = Results.objects.filter(id=exp_id, classifier=CLASSIFIER)

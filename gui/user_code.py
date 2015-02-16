@@ -249,7 +249,7 @@ def make_df(table:Table, index_cols=None):
     return df
 
 
-def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer', 'id']):
+def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
     """
     Gets parameters for `get_demsar_diagram`. Methods whose results are not in DB are dropped silently
     :param exp_ids: ids of experiments to look up

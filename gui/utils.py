@@ -3,12 +3,12 @@ __author__ = 'mmb28'
 # some names are too long to fit in figures, abbreviate as follows
 ABBREVIATIONS = {
     'word2vec': 'w2v',
-    'turian': 'Tur',
-    'count_windows': 'CW',
-    'count_dependencies': 'CD',
+    # 'turian': 'Tur',
+    'count_windows': 'W',
+    'count_dependencies': 'D',
     'random_neigh': 'RandN',
     'random_vect': 'RandV',
-    'Observed': 'obs',
+    # 'Observed': 'obs',
     'amazon_grouped-tagged': 'AM',
     'reuters21578/r8-tagged-grouped': 'R2',
     'movie-reviews-tagged': 'MR',

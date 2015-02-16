@@ -90,7 +90,19 @@ def get_interesting_experiments():
     yield {'vectors__unlabelled': 'turian',
            'labelled': 'amazon_grouped-tagged',
            'decode_handler': 'SignifiedOnlyFeatureHandler'}, None
+
+    # best counting models compared
+    yield {'labelled': 'amazon_grouped-tagged',
+           'vectors__use_ppmi': True,
+           'vectors__algorithm__in': ['count_dependencies', 'count_windows']}, None
+
     # some more plots in an IPython notebook
+
+
+    # todo Demsar diagram for Turian vectors with add-mult-left-righ-socher composers (got one done by hand)
+    #
+    #
+    # todo also yield a file name, sequential numbering is very hard to read
 
 
 for i, (query_dict, fields) in enumerate(get_interesting_experiments()):

@@ -87,22 +87,19 @@ def get_interesting_experiments():
            'labelled': 'techtc100-clean/Exp_186330_94142-tagged',
            'vectors__dimensionality': 100}, None
 
+    # Demsar diagram for Turian vectors with add-mult-left-righ-socher composers (got one done by hand)
     yield {'vectors__unlabelled': 'turian',
            'labelled': 'amazon_grouped-tagged',
            'decode_handler': 'SignifiedOnlyFeatureHandler'}, None
 
     # best counting models compared
     yield {'labelled': 'amazon_grouped-tagged',
+           'vectors__unlabelled__in': ['wiki', 'wikipedia'],
            'vectors__use_ppmi': True,
            'vectors__algorithm__in': ['count_dependencies', 'count_windows']}, None
 
-    # some more plots in an IPython notebook
-
-
-    # todo Demsar diagram for Turian vectors with add-mult-left-righ-socher composers (got one done by hand)
-    #
-    #
     # todo also yield a file name, sequential numbering is very hard to read
+    # some more plots in an IPython notebook
 
 
 for i, (query_dict, fields) in enumerate(get_interesting_experiments()):

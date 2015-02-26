@@ -62,9 +62,9 @@ def get_interesting_experiments():
                'document_features__in': ['AN', 'NN', 'AN_NN']}, ['labelled', 'vectors__composer', 'document_features']
     print('------------------------------------')
 
-    # best count models (deps, no SVD, Add/Left composers only) vs neural models
+    # best count models (deps, no SVD, PPMI) vs w2v
     yield {'vectors__composer__in': ['Add', 'Left', 'Socher'],
-           'vectors__algorithm__in': ['count_dependencies', 'turian', 'glove', 'word2vec'],
+           'vectors__algorithm__in': ['count_dependencies', 'word2vec'],
            'labelled': 'amazon_grouped-tagged',
            'document_features': 'AN_NN',
            'neighbour_strategy': 'linear',
@@ -87,16 +87,27 @@ def get_interesting_experiments():
            'labelled': 'techtc100-clean/Exp_186330_94142-tagged',
            'vectors__dimensionality': 100}, None
 
-    # Demsar diagram for Turian vectors with add-mult-left-righ-socher composers (got one done by hand)
+    # Demsar diagram for Turian vectors with add-mult-left-righ-socher composers
     yield {'vectors__unlabelled': 'turian',
            'labelled': 'amazon_grouped-tagged',
-           'decode_handler': 'SignifiedOnlyFeatureHandler'}, None
+           'decode_handler': 'SignifiedOnlyFeatureHandler'}, ['vectors__composer']
 
     # best counting models compared
     yield {'labelled': 'amazon_grouped-tagged',
            'vectors__unlabelled__in': ['wiki', 'wikipedia'],
            'vectors__use_ppmi': True,
            'vectors__algorithm__in': ['count_dependencies', 'count_windows']}, None
+
+    # adding noise vector
+    yield {'vectors__composer__in': ['Add'],
+           'vectors__unlabelled_percentage__in': ['100.0'],
+           'decode_handler__in': ['SignifiedOnlyFeatureHandler'],
+           'vectors__unlabelled__in': ['wikipedia', 'wiki'],
+           'k__in': ['3'],
+           'vectors__algorithm__in': ['word2vec'],
+           'labelled__in': ['amazon_grouped-tagged'],
+           'document_features__in': ['AN_NN'],
+           'vectors__rep__in': ['0']}, ['noise']
 
     # todo also yield a file name, sequential numbering is very hard to read
     # some more plots in an IPython notebook

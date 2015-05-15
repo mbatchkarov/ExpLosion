@@ -2,7 +2,7 @@ from io import BytesIO
 import base64
 import re
 from configobj import ConfigObj
-from thesisgenerator.utils.output_utils import get_scores
+from sklearn.metrics import accuracy_score
 import validate
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -11,8 +11,9 @@ import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
-from gui.models import Experiment, Table, Results, FullResults
+from gui.models import Experiment, Table, Results, FullResults, get_ci
 from gui.utils import ABBREVIATIONS
+from gui.output_utils import get_scores, get_cv_fold_count
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -62,8 +63,6 @@ def get_generated_figures(exp_ids):
     if not exp_ids:
         return []
     res = []
-    if config['r2_correlation']:
-        res.append(get_r2_correlation_plot(exp_ids))
     if config['significance_diagram']:
         res.append(figure_to_base64(get_demsar_diagram(*get_demsar_params(exp_ids))))
     return res
@@ -92,152 +91,11 @@ def populate_manually():
         exp.save()
 
 
-def _get_r2_from_log(exp_ids, logs):
-    selected_r2 = []  # todo put this in database in advance?
-    failed_experiments = set()
-    for txt, n in zip(logs, exp_ids):
-        try:
-            # todo there's a better way to get this
-            r2 = float(re.search('R-squared of class-pull plot: ([0-9\.]+)', txt).groups()[0])
-        except AttributeError:
-            # groups() fails if there isn't a match. This happens when the detailed offline analysis
-            # failed for some reason. Let's try and recover
-            composer_name = get_composer_name(n)
-            if composer_name == 'Random':
-                # todo If f(x) is random, there shouldn't be any correlation between x and f(x). In this case,
-                # for a given feature x and its log likelihood ratio, f(x) is the LLR of some other random feature.
-                r2 = 0
-            elif composer_name == 'Signifier':
-                # todo If f(x) = x, there shouldn't be perfect correlation between x and f(x). In this case,
-                # the r2 metric should be 1.
-                r2 = 1
-            else:
-                # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
-                print('Detailed analysis of experiment %d failed, check output directory' % n)
-                r2 = 0
-                # failed_experiments.add(n)
-                # continue
-                # raise ValueError('Detailed analysis of experiment %d failed, check output directory' % n)
-        selected_r2.append(r2)
-    return selected_r2
-
-
-def _get_SSE_from_log(exp_ids, logs):
-    selected_scores = []  # todo put this in database in advance?
-    for txt, n in zip(logs, exp_ids):
-        try:
-            score = float(
-                re.search('Sum-of-squares error compared to perfect diagonal = ([0-9\.]+)', txt).groups()[0])
-        except AttributeError:
-            score = 0
-        selected_scores.append(score)
-    return selected_scores
-
-
-def _get_wrong_quadrant_pct(exp_ids, logs, weighted):
-    selected_scores = []
-    for txt, n in zip(logs, exp_ids):
-        try:
-            score = re.search('([0-9/\.]+) data points are in the wrong quadrant \(%s\)' % weighted, txt).groups()[
-                0]
-            score = score.split('/')
-            selected_scores.append(float(score[0]) / float(score[1]))
-        except AttributeError:
-            selected_scores.append(0)
-    return selected_scores
-
-
-def get_r2_correlation_plot(exp_ids):
-    print('running r2 scatter')
-
-    logs = []
-    for n in exp_ids:
-        with open('gui/static/figures/stats_output%d.txt' % n) as infile:
-            logs.append(''.join(infile.readlines()))
-
-    # selected_r2 = _get_r2_from_log(exp_ids, logs)
-    # selected_sse = _get_SSE_from_log(exp_ids, logs)
-    selected_acc = []
-    acc_err = []
-    for n in exp_ids:
-        sample_size, score_mean, score_std = Results.get(id=n, classifier=CLASSIFIER).get_performance_info(METRIC_DB)
-        selected_acc.append(score_mean)
-        acc_err.append(score_std)
-
-        # return \
-        # _plot_x_agains_accuracy(selected_sse,
-        # selected_acc,
-        # acc_err,
-        # exp_ids,
-        # title='Normalised SSE from diagonal'), \
-        # _plot_x_agains_accuracy(selected_r2,
-        # selected_acc,
-        # acc_err,
-        # exp_ids,
-        # title='R2 of good feature LOR scatter plot'), \
-    return _plot_x_agains_accuracy(_get_wrong_quadrant_pct(exp_ids, logs, 'unweighted'),
-                                   selected_acc,
-                                   acc_err,
-                                   exp_ids,
-                                   title='Pct in wrong quadrant (unweighted)'), \
-           _plot_x_agains_accuracy(_get_wrong_quadrant_pct(exp_ids, logs, 'weighted by freq'),
-                                   selected_acc,
-                                   acc_err,
-                                   exp_ids,
-                                   title='Pct in wrong quadrant (weighted by freq)'), \
-           _plot_x_agains_accuracy(_get_wrong_quadrant_pct(exp_ids, logs, 'weighted by sim'),
-                                   selected_acc,
-                                   acc_err,
-                                   exp_ids,
-                                   title='Pct in wrong quadrant (weighted by sim)'), \
-           _plot_x_agains_accuracy(_get_wrong_quadrant_pct(exp_ids,
-                                                           logs, 'weighted by sim and freq'),
-                                   selected_acc,
-                                   acc_err,
-                                   exp_ids,
-                                   title='Pct in wrong quadrant (weighted by sim and freq)'), \
-        # _plot_x_agains_accuracy(_get_wrong_quadrant_pct(exp_ids, logs,
-    # 'weighted by seriousness, '
-    # 'sim and freq'),
-    # selected_acc,
-    # acc_err,
-    # exp_ids,
-    # title='Pct in wrong quadrant (weighted by seriousness, sim and freq)')
-
-
 def figure_to_base64(fig):
     canvas = FigureCanvas(fig)
     s = BytesIO()
     canvas.print_png(s)
     return base64.b64encode(s.getvalue())
-
-
-def _plot_x_agains_accuracy(x, selected_acc, acc_err, exp_ids, title=''):
-    fig = plt.Figure(dpi=100, facecolor='white')
-    ax = fig.add_subplot(111)
-
-    # do whatever magic is needed here
-    coef, r2, r2adj = plot_regression_line(ax,
-                                           np.array(x),
-                                           np.array(selected_acc),
-                                           np.ones(len(selected_acc)))
-    ax.errorbar(x, selected_acc, yerr=acc_err, capsize=0, ls='none')
-    composer_names = []
-    for n in exp_ids:
-        composer_name = get_composer_name(n)
-        composer_names.append('%d-%s' % (n, composer_name))
-    ax.scatter(x, selected_acc)
-    for i, txt in enumerate(composer_names):
-        ax.annotate(txt, (x[i], selected_acc[i]), fontsize='xx-small', rotation=30)
-
-    if len(coef) > 1:
-        fig.suptitle('y=%.2fx%+.2f; r2=%.2f(%.2f)' % (coef[0], coef[1], r2, r2adj))
-    else:
-        fig.suptitle('All x values are 0, cannot fit regression line')
-    ax.set_xlabel(title)
-    ax.set_ylabel(METRIC_DB)
-    ax.axhline(y=0.5, linestyle='--', color='0.75')
-    return figure_to_base64(fig)
 
 
 def make_df(table:Table, index_cols=None):
@@ -273,7 +131,7 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
         e = Experiment.objects.values_list(*name_format).get(id=eid)
         this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
         names.append(this_name)
-        cv_folds = FullResults.objects.filter(id=eid, classifier=CLASSIFIER).count()
+        cv_folds = get_cv_fold_count([eid])[0]
         full_names.extend([this_name] * cv_folds)
 
     sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)
@@ -332,19 +190,19 @@ def get_performance_table(exp_ids):
         raise ValueError('DUPLICATE EXPERIMENTS: got %s, unique: %s' % (exp_ids - set(exp_ids)))
     for exp_id in exp_ids:
         composer_name = '%s-%s' % (exp_id, get_composer_name(exp_id))
-        results = Results.objects.filter(id=exp_id, classifier=CLASSIFIER)
-        if not results:
+        result = Results.objects.get(id=exp_id, classifier=CLASSIFIER)
+        if not result:
             # table or result does not exist
             print('Missing results entry for exp %d and classifier %s' % (exp_id, CLASSIFIER))
             continue
 
-        score_mean, score_std = results[0].get_performance_info(METRIC_DB)
+        score_mean, score_low, score_high, _ = get_ci(exp_id, clf=CLASSIFIER)
         vectors = Experiment.objects.get(id=exp_id).vectors
         all_data.append([exp_id, str(vectors), CLASSIFIER, composer_name,
-                         np.mean(score_mean), np.mean(score_std)])
-    table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'std'],
+                         score_mean, score_low, score_high])
+    table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'low', 'high'],
                   all_data,
-                  'Performance over crossvalidation (std is mean of [std_over_CV(exp) for exp in exp_id])')
+                  'Performance over bootstrapped evaluation')
     return table, exp_ids
 
 
@@ -364,12 +222,14 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names
     if len(set(names)) < 2:
         print('Cannot run significance test on less than 2 methods: %r' % set(names))
         return None, None
+    print(data, names, exp_ids)
     mod = MultiComparison(np.array(data), names, group_order=sorted(set(names)))
-    a = mod.tukeyhsd(alpha=0.01)
+    # a = mod.tukeyhsd(alpha=0.05)
+    a = mod.allpairtest(pairwise_randomised_significance, alpha=0.05, method='bonf')
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists
 
     '''
-    A looks like this:
+    `a` looks like this:
 
     Multiple Comparison of Means - Tukey HSD,FWER=0.01
     ===============================================
@@ -388,15 +248,42 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names
     return Table(header, rows, desc), sorted(set(names))
 
 
-def plot_regression_line(ax, x, y, weights):
-    # copied here from rator.scripts.plot
-    xs = np.linspace(min(x), max(x))
-    x1 = sm.add_constant(x)
-    model = sm.WLS(y, x1, weights=weights)
-    results = model.fit()
-    coef = results.params[::-1]  # statsmodels' linear equation is b+ax, numpy's is ax+b
-    ax.plot(xs, results.predict(sm.add_constant(xs)), 'r-')
-    return coef, results.rsquared, results.rsquared_adj
+def pairwise_randomised_significance(exp1, exp2, clf=CLASSIFIER, nboot=500, statistic=accuracy_score):
+    # https://stat.duke.edu/~ar182/rr/examples-gallery/PermutationTest.html
+    # http://stackoverflow.com/a/24801874/419338
+    y = Results.objects.get(id=exp1, classifier=clf).predictions
+    z = Results.objects.get(id=exp2, classifier=clf).predictions
+    gold = Results.objects.get(id=exp1, classifier=clf).gold
+    size = len(y)
+
+    # todo these will not be the same size as different thesauri may drop different documents from
+    # the test set. shuffling code below needs to be updated
+    # assert len(y) == len(z) == len(gold)
+    assert set(y) == set(z) == set(gold)
+    assert list(gold) == list(Results.objects.get(id=exp2, classifier=clf).gold)
+
+    acc1 = statistic(gold, y)
+    acc2 = statistic(gold, z)
+    theta_hat = np.abs(acc1 - acc2)
+    print('Original difference', theta_hat)
+
+    estimates = []
+    # pooled = np.hstack([z, y])
+    for _ in range(nboot):
+        starY = np.copy(y)
+        starZ = np.copy(z)
+        where_to_shuffle = np.random.uniform(0, 1, size) < 0.5
+        tmp = y[where_to_shuffle]
+        starY[where_to_shuffle] = z[where_to_shuffle]
+        starZ[where_to_shuffle] = tmp
+
+        acc1 = statistic(gold, starY)
+        acc2 = statistic(gold, starZ)
+        estimates.append(np.abs(acc1 - acc2))
+
+    diffCount = len(np.where(estimates <= theta_hat)[0])
+    hat_asl_perm = 1.0 - (float(diffCount) / float(size))
+    return hat_asl_perm
 
 
 def get_composer_name(n):

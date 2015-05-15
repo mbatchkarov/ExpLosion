@@ -92,6 +92,7 @@ def add_group(request):
     # store the newly requested experiments in the session
     params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
     query_dict = {'%s__in' % k: v for k, v in params.items()}
+    print(query_dict)
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
     existing_experiments = [exp for exp in existing_experiments]

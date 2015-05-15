@@ -1,15 +1,21 @@
-from math import sqrt
+from functools import lru_cache
+import gzip
+import json
 from operator import itemgetter
+import traceback
 from django.db import models
+import numpy as np
+from sklearn.metrics import accuracy_score
 
 
 class Experiment(models.Model):
     id = models.IntegerField(primary_key=True)
-    document_features = models.CharField(max_length=255)
+    document_features_tr = models.CharField(max_length=255)  # AN+NN, AN only, NN only, ...
+    document_features_ev = models.CharField(max_length=255)
     use_similarity = models.IntegerField()
     use_random_neighbours = models.IntegerField()
     decode_handler = models.CharField(max_length=255)
-    vectors = models.ForeignKey('Vectors', blank=True, null=True)
+    vectors = models.OneToOneField('Vectors', blank=True, null=True)
     labelled = models.CharField(max_length=255)
     date_ran = models.DateField(blank=True, null=True)
     git_hash = models.CharField(max_length=255, blank=True)
@@ -48,7 +54,7 @@ class Experiment(models.Model):
 
 
 class Results(models.Model):
-    id = models.ForeignKey(Experiment, primary_key=True)
+    id = models.OneToOneField(Experiment, primary_key=True)
     classifier = models.CharField(max_length=255)
     accuracy_mean = models.FloatField()
     accuracy_std = models.FloatField()
@@ -56,6 +62,9 @@ class Results(models.Model):
     microf1_std = models.FloatField()
     macrof1_mean = models.FloatField()
     macrof1_std = models.FloatField()
+    _predictions = models.BinaryField(null=True)
+    _gold = models.BinaryField(null=True)
+
 
     def get_performance_info(self, metric='macrof1'):
         return round(getattr(self, '%s_mean' % metric), 6), \
@@ -65,9 +74,44 @@ class Results(models.Model):
         managed = False
         db_table = 'results'
 
+    @property
+    def predictions(self):
+        return np.array(json.loads(gzip.decompress(self._predictions).decode('utf8')))
+
+    @property
+    def gold(self):
+        return np.array(json.loads(gzip.decompress(self._gold).decode('utf8')))
+
+    def ci(self, nboot=500, statistic=accuracy_score):
+        print('Calculating CI for exp', self.id)
+        gold = self.gold
+        predictions = self.predictions
+
+        scores = []
+        for _ in range(nboot):
+            ind = np.random.choice(range(len(gold)), size=len(gold))
+            g = gold[ind]
+            pred = predictions[ind]
+            f1 = statistic(g, pred)
+            scores.append(f1)
+        scores = np.array(sorted(scores))
+        self.bootstrap_scores = scores
+        self.mean = scores.mean()
+        self.low = np.percentile(scores, 2.5)
+        self.high = np.percentile(scores, 97.5)
+        return self.mean, self.low, self.high, self.bootstrap_scores
+
+
+@lru_cache(maxsize=12345)
+def get_ci(exp_id, clf='MultinomialNB'):
+    # django creates a new object for each query, which causes the expensive
+    # ci() method to be called multiple times. Cache that call to save time
+    # NB: can't use cache on another object, that's why we use this function
+    return Results.objects.get(id=exp_id, classifier=clf).ci()
+
 
 class FullResults(models.Model):
-    id = models.ForeignKey(Experiment, primary_key=True)
+    id = models.OneToOneField(Experiment, primary_key=True)
     classifier = models.CharField(max_length=255)
     cv_fold = models.IntegerField()
     accuracy_score = models.FloatField()

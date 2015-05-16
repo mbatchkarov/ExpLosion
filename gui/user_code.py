@@ -252,37 +252,41 @@ def pairwise_randomised_significance(exp1, exp2, clf=CLASSIFIER, nboot=500, stat
     # https://stat.duke.edu/~ar182/rr/examples-gallery/PermutationTest.html
     # http://stackoverflow.com/a/24801874/419338
     y = Results.objects.get(id=exp1, classifier=clf).predictions
+    y_gold = Results.objects.get(id=exp1, classifier=clf).gold
+    y_size = len(y)
     z = Results.objects.get(id=exp2, classifier=clf).predictions
-    gold = Results.objects.get(id=exp1, classifier=clf).gold
-    size = len(y)
+    z_gold = Results.objects.get(id=exp2, classifier=clf).gold
 
     # todo these will not be the same size as different thesauri may drop different documents from
     # the test set. shuffling code below needs to be updated
     # assert len(y) == len(z) == len(gold)
-    assert set(y) == set(z) == set(gold)
-    assert list(gold) == list(Results.objects.get(id=exp2, classifier=clf).gold)
+    # assert list(gold) == list(Results.objects.get(id=exp2, classifier=clf).gold)
 
-    acc1 = statistic(gold, y)
-    acc2 = statistic(gold, z)
-    theta_hat = np.abs(acc1 - acc2)
+    # at least check these experiments were done on the same dataset
+    assert set(y) == set(z) == set(y_gold) == set(z_gold)
+
+    y_acc = statistic(y_gold, y)
+    z_acc = statistic(z_gold, z)
+    theta_hat = np.abs(y_acc - z_acc)
     print('Original difference', theta_hat)
 
     estimates = []
-    # pooled = np.hstack([z, y])
+    pooled = np.hstack([y, z]).ravel()
+    pooled_g = np.hstack([y_gold, z_gold]).ravel()
     for _ in range(nboot):
-        starY = np.copy(y)
-        starZ = np.copy(z)
-        where_to_shuffle = np.random.uniform(0, 1, size) < 0.5
-        tmp = y[where_to_shuffle]
-        starY[where_to_shuffle] = z[where_to_shuffle]
-        starZ[where_to_shuffle] = tmp
+        perm_ind = np.arange(len(pooled))
+        np.random.shuffle(perm_ind)
+        pooled = pooled[perm_ind]
+        pooled_g = pooled_g[perm_ind]
 
-        acc1 = statistic(gold, starY)
-        acc2 = statistic(gold, starZ)
-        estimates.append(np.abs(acc1 - acc2))
+        y_acc = statistic(pooled_g[:y_size], pooled[:y_size])
+        z_acc = statistic(pooled_g[y_size:], pooled[y_size:])
+        new_diff = np.abs(y_acc - z_acc)
+        # print('New difference', new_diff)
+        estimates.append(new_diff)
 
-    diffCount = len(np.where(estimates <= theta_hat)[0])
-    hat_asl_perm = 1.0 - (float(diffCount) / float(size))
+    diff_count = len(np.where(estimates <= theta_hat)[0])
+    hat_asl_perm = 1.0 - (diff_count / nboot)
     return hat_asl_perm
 
 

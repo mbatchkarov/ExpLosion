@@ -1,6 +1,5 @@
 from io import BytesIO
 import base64
-import re
 from configobj import ConfigObj
 from sklearn.metrics import accuracy_score
 import validate
@@ -9,11 +8,10 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
-import statsmodels.api as sm
 from critical_difference.plot import do_plot, print_figure
 from gui.models import Experiment, Table, Results, FullResults, get_ci
 from gui.utils import ABBREVIATIONS
-from gui.output_utils import get_scores, get_cv_fold_count
+from gui.output_utils import BOOTSTRAP_REPS
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -120,24 +118,25 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
                 - names of the methods compared, as specified by `name_format`
                 - mean scores of the methods compared
     """
-    table, exp_ids = get_performance_table(exp_ids)
-    if not table.rows:
-        return None, None, None
-    scores_table = make_df(table, 'exp id').convert_objects(convert_numeric=True)
+    # table, exp_ids = get_performance_table(exp_ids)
+    # if not table.rows:
+    #     return None, None, None
+    # scores_table = make_df(table, 'exp id').convert_objects(convert_numeric=True)
+    mean_scores = [foo.accuracy_mean for foo in Results.objects.filter(id__in=exp_ids, classifier=CLASSIFIER)]
 
-    data, _, exp_ids = get_scores(exp_ids)
     names, full_names = [], []
     for eid in exp_ids:
+        labels = get_data_for_signif_test(eid)
         e = Experiment.objects.values_list(*name_format).get(id=eid)
         this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
         names.append(this_name)
-        cv_folds = get_cv_fold_count([eid])[0]
-        full_names.extend([this_name] * cv_folds)
+        full_names.extend([this_name] * len(labels))
 
+    data = np.concatenate([get_data_for_signif_test(i) for i in exp_ids])
     sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)
     sign_table = make_df(sign_table)
 
-    return sign_table, np.array(names), np.array(scores_table[METRIC_DB])
+    return sign_table, np.array(names), np.array(mean_scores)  # np.array(scores_table[METRIC_DB])
 
 
 def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
@@ -217,59 +216,63 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names
     """
     print('Running significance for experiments %r' % exp_ids)
     if data is None and names is None:
-        data, names, exp_ids = get_scores(exp_ids, classifier=classifier)
+        raise ValueError('Oh shite')
 
-    if len(set(names)) < 2:
+    if len(exp_ids) < 2:
         print('Cannot run significance test on less than 2 methods: %r' % set(names))
         return None, None
-    print(data, names, exp_ids)
+
     mod = MultiComparison(np.array(data), names, group_order=sorted(set(names)))
     # a = mod.tukeyhsd(alpha=0.05)
-    a = mod.allpairtest(pairwise_randomised_significance, alpha=0.05, method='bonf')
+    res_table, cock, balls = mod.allpairtest(pairwise_randomised_significance, alpha=0.05, method='bonf', pvalidx=0)
     # reject hypothesis that mean is the same? rej=true means a sign. difference exists
-
+    # print(str(res_table))
     '''
     `a` looks like this:
 
-    Multiple Comparison of Means - Tukey HSD,FWER=0.01
-    ===============================================
-     group1  group2 meandiff  lower   upper  reject
-    -----------------------------------------------
-    57-APDT 58-APDT -0.0487  -0.0759 -0.0215  True
-    59-APDT 60-APDT -0.0124  -0.0395  0.0148 False
-    -----------------------------------------------
+    Test Multiple Comparison pairwise_randomised_significance
+    FWER=0.05 method=bonf
+    alphacSidak=0.05, alphacBonf=0.050
+    ===================================================
+       group1      group2   stat  pval pval_corr reject
+    ---------------------------------------------------
+    RandN-RandN RandV-RandV -1.0 0.184    -1.0    True
+    ---------------------------------------------------
     '''
-    data = str(a).split('\n')
-    desc = data[0]
-    header = data[2].split()
+    data = str(res_table).split('\n')
+    desc = ','.join(data[:3])
+    header = data[4].split()
     header[-1] = 'significant'
-    rows = [row.split() for row in data[4:-1]]
+    rows = [row.split() for row in data[6:-1]]
 
     return Table(header, rows, desc), sorted(set(names))
 
 
-def pairwise_randomised_significance(exp1, exp2, clf=CLASSIFIER, nboot=500, statistic=accuracy_score):
+def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
+    y = Results.objects.get(id=exp_id, classifier=clf).predictions
+    y_gold = Results.objects.get(id=exp_id, classifier=clf).gold
+
+    # check gold standard matches right answers
+    assert set(y) == set(y_gold)
+    return np.concatenate([y, y_gold])
+
+
+def pairwise_randomised_significance(y, z, nboot=500, statistic=accuracy_score):
     # https://stat.duke.edu/~ar182/rr/examples-gallery/PermutationTest.html
     # http://stackoverflow.com/a/24801874/419338
-    y = Results.objects.get(id=exp1, classifier=clf).predictions
-    y_gold = Results.objects.get(id=exp1, classifier=clf).gold
-    y_size = len(y)
-    z = Results.objects.get(id=exp2, classifier=clf).predictions
-    z_gold = Results.objects.get(id=exp2, classifier=clf).gold
 
-    # todo these will not be the same size as different thesauri may drop different documents from
-    # the test set. shuffling code below needs to be updated
-    # assert len(y) == len(z) == len(gold)
-    # assert list(gold) == list(Results.objects.get(id=exp2, classifier=clf).gold)
+    half_y = len(y) / 2
+    y_gold = y[half_y:]
+    y = y[:half_y]
 
-    # at least check these experiments were done on the same dataset
-    assert set(y) == set(z) == set(y_gold) == set(z_gold)
+    half_z = len(z) / 2
+    z_gold = z[half_z:]
+    z = z[:half_z]
 
     y_acc = statistic(y_gold, y)
     z_acc = statistic(z_gold, z)
     theta_hat = np.abs(y_acc - z_acc)
     print('Original difference', theta_hat)
-
     estimates = []
     pooled = np.hstack([y, z]).ravel()
     pooled_g = np.hstack([y_gold, z_gold]).ravel()
@@ -279,15 +282,16 @@ def pairwise_randomised_significance(exp1, exp2, clf=CLASSIFIER, nboot=500, stat
         pooled = pooled[perm_ind]
         pooled_g = pooled_g[perm_ind]
 
-        y_acc = statistic(pooled_g[:y_size], pooled[:y_size])
-        z_acc = statistic(pooled_g[y_size:], pooled[y_size:])
+        y_acc = statistic(pooled_g[:half_y], pooled[:half_y])
+        z_acc = statistic(pooled_g[half_y:], pooled[half_y:])
         new_diff = np.abs(y_acc - z_acc)
         # print('New difference', new_diff)
         estimates.append(new_diff)
-
     diff_count = len(np.where(estimates <= theta_hat)[0])
     hat_asl_perm = 1.0 - (diff_count / nboot)
-    return hat_asl_perm
+    print('p-value', hat_asl_perm)
+    return -1, hat_asl_perm
+    # statsmodels multiple comparison insists this is shaped like this: (statistic, p-value)
 
 
 def get_composer_name(n):

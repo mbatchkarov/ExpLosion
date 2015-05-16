@@ -7,6 +7,7 @@ from gui.models import Experiment, Results, get_ci
 
 METRIC_DB = 'macrof1'
 METRIC_CSV_FILE = 'macroavg_f1'
+BOOTSTRAP_REPS = 500
 
 
 def get_single_vectors_field(exp_id, field_name):
@@ -33,20 +34,6 @@ def get_vectors_field(exp_ids, field_name):
 def get_cv_scores_single_experiment(n, clf):
     _, _, _, bootstrap_scores = get_ci(n, clf=clf)
     return bootstrap_scores
-
-
-def get_scores(exp_ids, classifier='MultinomialNB'):
-    data = []
-    folds = []
-    success = []
-    for exp_number in exp_ids:
-        scores = get_cv_scores_single_experiment(exp_number, classifier)
-        if scores is not None and len(scores) > 0:
-            cv_folds = len(scores)
-            folds.extend(range(cv_folds))
-            data.extend(scores)
-            success.append(exp_number)
-    return data, folds, success
 
 
 # data, folds = get_scores([11, 12])

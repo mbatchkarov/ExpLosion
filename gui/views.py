@@ -5,8 +5,9 @@ from django.shortcuts import render_to_response
 from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
+from pandas import DataFrame
 
-from gui.models import Experiment, Vectors, Table
+from gui.models import Experiment, Vectors
 from gui.user_code import get_tables, get_generated_figures, get_static_figures
 
 excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
@@ -39,8 +40,7 @@ def analyse(request):
 
     exp_ids = request.session.get('groups', [])
     for table in get_tables(exp_ids):
-        content = render_to_string('table.html', table.__dict__)
-        response.write(content)
+        response.write(to_html(table))
 
     for img in get_generated_figures(exp_ids):
         content = render_to_string('image.html', {'image': img})
@@ -60,7 +60,6 @@ def show_current_selection(request, allow_pruning=True):
     existing_experiments = Experiment.objects.all().filter(id__in=existing_experiments)
     if len(existing_experiments) < 1:
         return HttpResponse('No experiments match your current selection')
-    desc = 'Settings for selected experiments:'
     if not columns_to_show:
         init_columns_to_show()
     header = ['id', 'vectors__id'] + list(columns_to_show.keys())
@@ -78,14 +77,16 @@ def show_current_selection(request, allow_pruning=True):
             else:
                 row.append(getattr(exp, field))
         rows.append(row)
-    table = Table(header, rows, desc)
+    table = DataFrame(rows, columns=header)
     print(rows)
     if allow_pruning:
         prune = not request.session.get('prune_duplicates', False)  # initially false
         request.session['prune_duplicates'] = prune
         if prune:
-            table.prune()
-    return render_to_response('table.html', table.__dict__)
+            table = prune_table(table)
+    response = HttpResponse()
+    response.write(to_html(table))
+    return response
 
 
 def add_group(request):
@@ -107,3 +108,20 @@ def add_group(request):
 def clear_groups(request):
     request.session.flush()
     return HttpResponse()
+
+
+def prune_table(df):
+    """
+    Removes columns where all values are duplicates
+    """
+    dupl_names = []
+    for column_name in df.columns:
+        if len(set(df[column_name])) == 1:
+            dupl_names.append(column_name)
+
+    if dupl_names and len(df) > 1:
+        df = df.drop(dupl_names, axis=1)
+    return df
+
+def to_html(table):
+    return table.to_html(classes="table table-nonfluid table-hover table-bordered table-condensed tablesorter")

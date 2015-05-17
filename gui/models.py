@@ -1,11 +1,11 @@
-from functools import lru_cache
 import gzip
 import json
-from operator import itemgetter
-import traceback
 from django.db import models
+from joblib import Memory
 import numpy as np
 from sklearn.metrics import accuracy_score
+
+memory = Memory(cachedir='.', verbose=0)
 
 
 class Experiment(models.Model):
@@ -102,7 +102,7 @@ class Results(models.Model):
         return self.mean, self.low, self.high, self.bootstrap_scores
 
 
-@lru_cache(maxsize=12345)
+@memory.cache
 def get_ci(exp_id, clf='MultinomialNB'):
     # django creates a new object for each query, which causes the expensive
     # ci() method to be called multiple times. Cache that call to save time
@@ -149,33 +149,3 @@ class Vectors(models.Model):
     class Meta:
         managed = False
         db_table = 'vectors'
-
-
-class Table():
-    def __init__(self, header, rows, desc):
-        for row in rows:
-            if not len(header) == len(row):
-                raise ValueError('Malformed table. Header has %d columns and one of '
-                                 'the rows has %d' % (len(header), len(row)))
-
-        self.header = header
-        self.rows = rows
-        self.description = desc
-
-    def prune(self):
-        """
-        Removes columns where all values are duplicates
-        """
-        dupl_idx = []
-        for i, column_name in enumerate(self.header):
-            if len(set(row[i] for row in self.rows)) == 1:
-                # just one value
-                dupl_idx.append(i)
-        if dupl_idx and len(self.rows) > 1:
-            idx_to_keep = set(range(len(self.header))) - set(dupl_idx)
-            self.header = itemgetter(*idx_to_keep)(self.header)
-            self.rows = [itemgetter(*idx_to_keep)(row) for row in self.rows]
-            if len(idx_to_keep) == 1:
-                # itemgetter will return just an item, no a list containing the item
-                self.header = [self.header]
-                self.rows = [[x] for x in self.rows]

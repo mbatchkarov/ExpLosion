@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 from critical_difference.plot import do_plot, print_figure
-from gui.models import Experiment, Table, Results, FullResults, get_ci
+from gui.models import Experiment, Results, get_ci, memory
 from gui.utils import ABBREVIATIONS
-from gui.output_utils import BOOTSTRAP_REPS
+
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -25,10 +25,6 @@ def parse_config_file(conf_file):
     # copied from thesisgen
     config = ConfigObj(conf_file, configspec='confrc')
     validator = validate.Validator()
-    result = config.validate(validator)
-    # if not result:
-    # print('Invalid configuration')
-    # sys.exit(1)
     return config
 
 
@@ -40,9 +36,9 @@ def get_tables(exp_ids):
     if not exp_ids:
         return res
     if config['performance_table']:
-        res.append(get_performance_table(exp_ids)[0])
+        res.append(get_performance_table(exp_ids, ci=config['performance_ci'])[0])
     if config['significance_table']:
-        res.append(get_significance_table(exp_ids)[0])
+        res.append(get_demsar_params(exp_ids)[0])
     return res
 
 
@@ -96,15 +92,6 @@ def figure_to_base64(fig):
     return base64.b64encode(s.getvalue())
 
 
-def make_df(table:Table, index_cols=None):
-    if table is None or not table.rows:
-        return None
-    df = pd.DataFrame(table.rows, columns=table.header)
-    if index_cols:
-        df.set_index(index_cols, inplace=True)
-    return df
-
-
 def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
     """
     Gets parameters for `get_demsar_diagram`. Methods whose results are not in DB are dropped silently
@@ -118,10 +105,6 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
                 - names of the methods compared, as specified by `name_format`
                 - mean scores of the methods compared
     """
-    # table, exp_ids = get_performance_table(exp_ids)
-    # if not table.rows:
-    #     return None, None, None
-    # scores_table = make_df(table, 'exp id').convert_objects(convert_numeric=True)
     mean_scores = [foo.accuracy_mean for foo in Results.objects.filter(id__in=exp_ids, classifier=CLASSIFIER)]
 
     names, full_names = [], []
@@ -134,9 +117,8 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
 
     data = np.concatenate([get_data_for_signif_test(i) for i in exp_ids])
     sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)
-    sign_table = make_df(sign_table)
 
-    return sign_table, np.array(names), np.array(mean_scores)  # np.array(scores_table[METRIC_DB])
+    return sign_table, np.array(names), np.array(mean_scores)
 
 
 def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
@@ -173,17 +155,8 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
     return fig
 
 
-def get_performance_table(exp_ids):
+def get_performance_table(exp_ids, ci=True):
     print('running performance query for experiments %s' % exp_ids)
-
-    # for exp_list in exp_lists:
-    # if isinstance(exp_list, int):
-    # exp_list = [exp_list]
-    # composer = '%s-%s' % ('-'.join(str(foo) for foo in exp_list),
-    # get_composer_name(exp_list[0]))
-    # composers.extend([composer] * (cv_folds * len(exp_list)))
-    # for exp_number in exp_list:
-
     all_data = []
     if len(exp_ids) != len(set(exp_ids)):
         raise ValueError('DUPLICATE EXPERIMENTS: got %s, unique: %s' % (exp_ids - set(exp_ids)))
@@ -195,13 +168,18 @@ def get_performance_table(exp_ids):
             print('Missing results entry for exp %d and classifier %s' % (exp_id, CLASSIFIER))
             continue
 
-        score_mean, score_low, score_high, _ = get_ci(exp_id, clf=CLASSIFIER)
+        if ci:
+            score_mean, score_low, score_high, _ = get_ci(exp_id, clf=CLASSIFIER)
+        else:
+            score_mean = Results.objects.get(id=exp_id, classifier=CLASSIFIER).accuracy_mean
+            score_low, score_high = -1, -1
+
         vectors = Experiment.objects.get(id=exp_id).vectors
-        all_data.append([exp_id, str(vectors), CLASSIFIER, composer_name,
-                         score_mean, score_low, score_high])
-    table = Table(['exp id', 'vectors', 'classifier', 'composer', METRIC_DB, 'low', 'high'],
-                  all_data,
-                  'Performance over bootstrapped evaluation')
+        row = [exp_id, str(vectors), CLASSIFIER, composer_name, score_mean, score_low, score_high]
+        all_data.append(row if ci else row[:-2])
+
+    header = ['exp id', 'vectors', 'classifier', 'composer', METRIC_DB] + (['low', 'high'] if ci else [])
+    table = pd.DataFrame(all_data, columns=header)
     return table, exp_ids
 
 
@@ -245,7 +223,7 @@ def get_significance_table(exp_ids, classifier='MultinomialNB', data=None, names
     header[-1] = 'significant'
     rows = [row.split() for row in data[6:-1]]
 
-    return Table(header, rows, desc), sorted(set(names))
+    return pd.DataFrame(rows, columns=header), sorted(set(names))
 
 
 def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
@@ -257,6 +235,7 @@ def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
     return np.concatenate([y, y_gold])
 
 
+@memory.cache
 def pairwise_randomised_significance(y, z, nboot=500, statistic=accuracy_score):
     # https://stat.duke.edu/~ar182/rr/examples-gallery/PermutationTest.html
     # http://stackoverflow.com/a/24801874/419338
@@ -290,7 +269,7 @@ def pairwise_randomised_significance(y, z, nboot=500, statistic=accuracy_score):
     diff_count = len(np.where(estimates <= theta_hat)[0])
     hat_asl_perm = 1.0 - (diff_count / nboot)
     print('p-value', hat_asl_perm)
-    return -1, hat_asl_perm
+    return theta_hat, hat_asl_perm
     # statsmodels multiple comparison insists this is shaped like this: (statistic, p-value)
 
 

@@ -14,6 +14,20 @@ excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']  # todo id neede
 excluded_vector_columns = ['id', 'can_build', 'path', 'modified', 'size']
 columns_to_show = {}
 
+column_types = {}
+
+
+def convert_type(col_name:str, col_value:list):
+    col_type = column_types.get(col_name, None)
+    if col_type is None:
+        return col_value
+    if col_type == 'BooleanField':
+        return [bool(int(x)) for x in col_value]
+    elif col_type == 'IntegerField':
+        return [int(x) for x in col_value]
+    elif col_type == 'FloatField':
+        return [float(x) for x in col_value]
+
 
 def init_columns_to_show():
     # get all fields of the Experiment object
@@ -21,13 +35,17 @@ def init_columns_to_show():
     # field -> all values it has in the database
     for column_name in data.keys():
         columns_to_show[column_name] = set(Experiment.objects.values_list(column_name, flat=True))
+        column_types[column_name] = Experiment._meta.get_field(column_name).get_internal_type()
+
     data = model_to_dict(Vectors.objects.get(id=1), exclude=excluded_vector_columns)
     for column_name in data.keys():
         columns_to_show['vectors__%s' % column_name] = set(Vectors.objects.values_list(column_name, flat=True))
+        column_types['vectors__%s' % column_name] = Vectors._meta.get_field(column_name).get_internal_type()
 
 
+
+init_columns_to_show()
 def index(request):
-    init_columns_to_show()
     return render_to_response('index.html', {'data': OrderedDict(sorted(columns_to_show.items()))})
 
 
@@ -92,7 +110,7 @@ def show_current_selection(request, allow_pruning=True):
 def add_group(request):
     # store the newly requested experiments in the session
     params = {k[:-2]: request.GET.getlist(k) for k in request.GET.keys()}
-    query_dict = {'%s__in' % k: v for k, v in params.items()}
+    query_dict = {'%s__in' % k: convert_type(k, v) for k, v in params.items()}
     print(query_dict)
     new_experiments = Experiment.objects.values_list('id', flat=True).filter(**query_dict)
     existing_experiments = request.session.get('groups', [])
@@ -122,6 +140,7 @@ def prune_table(df):
     if dupl_names and len(df) > 1:
         df = df.drop(dupl_names, axis=1)
     return df
+
 
 def to_html(table):
     return table.to_html(classes="table table-nonfluid table-hover table-bordered table-condensed tablesorter")

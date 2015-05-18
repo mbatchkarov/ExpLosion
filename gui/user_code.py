@@ -155,7 +155,7 @@ def get_demsar_diagram(significance_df, names, mean_scores, filename=None):
     return fig
 
 
-def get_performance_table(exp_ids, ci=True):
+def get_performance_table(exp_ids, ci=False):
     print('running performance query for experiments %s' % exp_ids)
     all_data = []
     if len(exp_ids) != len(set(exp_ids)):

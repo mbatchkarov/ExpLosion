@@ -31,10 +31,15 @@ def get_vectors_field(exp_ids, field_name):
     return list(itertools.chain.from_iterable(x))
 
 
-def get_cv_scores_single_experiment(n, clf):
+def get_cv_scores_single_experiment(n, clf='MultinomialNB'):
     _, _, _, bootstrap_scores = get_ci(n, clf=clf)
     return bootstrap_scores
 
+
+def get_cv_scores_many_experiment(ids, clf='MultinomialNB'):
+    scores = [get_cv_scores_single_experiment(i, clf=clf) for i in ids]
+    bootstrap_ids = [range(len(x)) for x in scores]
+    return list(itertools.chain.from_iterable(scores)), list(itertools.chain.from_iterable(bootstrap_ids))
 
 # data, folds = get_scores([11, 12])
 # reps = get_vectors_field([11, 12], 'rep')

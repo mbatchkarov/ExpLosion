@@ -13,15 +13,18 @@ class Experiment(models.Model):
     document_features_tr = models.CharField(max_length=255)  # AN+NN, AN only, NN only, ...
     document_features_ev = models.CharField(max_length=255)
     use_similarity = models.IntegerField()
+    allow_overlap = models.BooleanField(default=False)
     use_random_neighbours = models.IntegerField()
     decode_handler = models.CharField(max_length=255)
-    vectors = models.OneToOneField('Vectors', blank=True, null=True)
     labelled = models.CharField(max_length=255)
-    date_ran = models.DateField(blank=True, null=True)
-    git_hash = models.CharField(max_length=255, blank=True)
+    vectors = models.OneToOneField('Vectors', blank=True, null=True, related_name='+')
+    entries_of = models.OneToOneField('Vectors', blank=True, null=True, related_name='+')
     k = models.IntegerField()  # how many neighbours entries are replaced with at decode time
     neighbour_strategy = models.CharField(max_length=255)
     noise = models.FloatField(default=0)
+
+    date_ran = models.DateField(blank=True, null=True)
+    git_hash = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))

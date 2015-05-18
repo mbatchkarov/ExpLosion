@@ -27,7 +27,7 @@ def convert_type(col_name:str, col_value:list):
         return [int(x) for x in col_value]
     elif col_type == 'FloatField':
         return [float(x) for x in col_value]
-
+    return col_value
 
 def init_columns_to_show():
     # get all fields of the Experiment object
@@ -81,7 +81,6 @@ def show_current_selection(request, allow_pruning=True):
     if not columns_to_show:
         init_columns_to_show()
     header = ['id', 'vectors__id'] + list(columns_to_show.keys())
-    print()
     rows = []
     for i, exp in enumerate(existing_experiments):
         row = []
@@ -95,7 +94,7 @@ def show_current_selection(request, allow_pruning=True):
             else:
                 row.append(getattr(exp, field))
         rows.append(row)
-    table = DataFrame(rows, columns=header)
+    table = DataFrame(rows, columns=header).set_index(['id'])
     print(rows)
     if allow_pruning:
         prune = not request.session.get('prune_duplicates', False)  # initially false

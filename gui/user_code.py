@@ -1,8 +1,6 @@
 from io import BytesIO
 import base64
-from configobj import ConfigObj
 from sklearn.metrics import accuracy_score
-import validate
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import numpy as np
@@ -11,6 +9,7 @@ from statsmodels.stats.multicomp import MultiComparison
 from critical_difference.plot import do_plot, print_figure
 from gui.models import Experiment, Results, get_ci, memory
 from gui.utils import ABBREVIATIONS
+from thesisgenerator.utils.conf_file_utils import parse_config_file
 
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
@@ -20,15 +19,7 @@ METRIC_DB = 'macrof1'
 METRIC_CSV_FILE = 'macroavg_f1'
 
 
-def parse_config_file(conf_file):
-    # copied from thesisgen
-    config = ConfigObj(conf_file, configspec='confrc')
-    validator = validate.Validator()
-    return config
-
-
-config = parse_config_file('output.conf')
-
+config, _ = parse_config_file('conf/output.conf')
 
 def get_tables(exp_ids):
     res = []

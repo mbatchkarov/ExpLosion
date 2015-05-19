@@ -94,7 +94,7 @@ def show_current_selection(request, allow_pruning=True):
             else:
                 row.append(getattr(exp, field))
         rows.append(row)
-    table = DataFrame(rows, columns=header).set_index(['id'])
+    table = DataFrame(rows, columns=header).set_index(['id'])[sorted(header[1:])]
     print(rows)
     if allow_pruning:
         prune = not request.session.get('prune_duplicates', False)  # initially false

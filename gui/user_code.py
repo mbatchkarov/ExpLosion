@@ -12,7 +12,6 @@ from critical_difference.plot import do_plot, print_figure
 from gui.models import Experiment, Results, get_ci, memory
 from gui.utils import ABBREVIATIONS
 
-
 CLASSIFIER = 'MultinomialNB'
 # the name differs between the DB a the csv files, can't be bothered to fix
 # METRIC_DB = 'accuracy'
@@ -92,6 +91,15 @@ def figure_to_base64(fig):
     return base64.b64encode(s.getvalue())
 
 
+def pretty_names(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
+    names = []
+    for eid in exp_ids:
+        e = Experiment.objects.values_list(*name_format).get(id=eid)
+        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
+        names.append(this_name)
+    return names
+
+
 def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
     """
     Gets parameters for `get_demsar_diagram`. Methods whose results are not in DB are dropped silently
@@ -107,13 +115,11 @@ def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__comp
     """
     mean_scores = [foo.accuracy_mean for foo in Results.objects.filter(id__in=exp_ids, classifier=CLASSIFIER)]
 
-    names, full_names = [], []
-    for eid in exp_ids:
-        labels = get_data_for_signif_test(eid)
-        e = Experiment.objects.values_list(*name_format).get(id=eid)
-        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
-        names.append(this_name)
-        full_names.extend([this_name] * len(labels))
+    names = pretty_names(exp_ids, name_format)
+    full_names = []
+    for eid, this_name in zip(exp_ids, names):
+        document_labels = get_data_for_signif_test(eid)
+        full_names.extend([this_name] * len(document_labels))
 
     data = np.concatenate([get_data_for_signif_test(i) for i in exp_ids])
     sign_table, _ = get_significance_table(exp_ids, data=data, names=full_names)

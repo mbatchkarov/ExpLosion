@@ -7,16 +7,9 @@ import numpy as np
 import pandas as pd
 from statsmodels.stats.multicomp import MultiComparison
 from critical_difference.plot import do_plot, print_figure
+from gui.constants import METRIC_DB, CLASSIFIER, ABBREVIATIONS, BOOTSTRAP_REPS
 from gui.models import Experiment, Results, get_ci, memory
-from gui.utils import ABBREVIATIONS
 from thesisgenerator.utils.conf_file_utils import parse_config_file
-
-CLASSIFIER = 'MultinomialNB'
-# the name differs between the DB a the csv files, can't be bothered to fix
-# METRIC_DB = 'accuracy'
-# METRIC_CSV_FILE = 'accuracy_score'
-METRIC_DB = 'macrof1'
-METRIC_CSV_FILE = 'macroavg_f1'
 
 
 config, _ = parse_config_file('conf/output.conf')
@@ -233,7 +226,7 @@ def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
 
 
 @memory.cache
-def pairwise_randomised_significance(y, z, nboot=500, statistic=accuracy_score):
+def pairwise_randomised_significance(y, z, nboot=BOOTSTRAP_REPS, statistic=accuracy_score):
     # https://stat.duke.edu/~ar182/rr/examples-gallery/PermutationTest.html
     # http://stackoverflow.com/a/24801874/419338
 

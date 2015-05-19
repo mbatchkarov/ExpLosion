@@ -1,6 +1,9 @@
-__author__ = 'mmb28'
+METRIC_DB = 'accuracy'
+METRIC_CSV_FILE = 'accuracy_score'
+BOOTSTRAP_REPS = 500
+CLASSIFIER = 'MultinomialNB'
 
-# some names are too long to fit in figures, abbreviate as follows
+# some names are too long to fit in figures, abbreviate as follows:
 ABBREVIATIONS = {
     'word2vec': 'w2v',
     # 'turian': 'Tur',

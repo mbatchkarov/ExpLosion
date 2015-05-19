@@ -4,6 +4,7 @@ from django.db import models
 from joblib import Memory
 import numpy as np
 from sklearn.metrics import accuracy_score
+from gui.constants import BOOTSTRAP_REPS, CLASSIFIER, METRIC_DB
 
 memory = Memory(cachedir='.', verbose=0)
 
@@ -69,7 +70,7 @@ class Results(models.Model):
     _gold = models.BinaryField(null=True)
 
 
-    def get_performance_info(self, metric='macrof1'):
+    def get_performance_info(self, metric=METRIC_DB):
         return round(getattr(self, '%s_mean' % metric), 6), \
                round(getattr(self, '%s_std' % metric), 6)
 
@@ -85,7 +86,7 @@ class Results(models.Model):
     def gold(self):
         return np.array(json.loads(gzip.decompress(self._gold).decode('utf8')))
 
-    def ci(self, nboot=500, statistic=accuracy_score):
+    def ci(self, nboot=BOOTSTRAP_REPS, statistic=accuracy_score):
         print('Calculating CI for exp', self.id)
         gold = self.gold
         predictions = self.predictions
@@ -106,7 +107,7 @@ class Results(models.Model):
 
 
 @memory.cache
-def get_ci(exp_id, clf='MultinomialNB'):
+def get_ci(exp_id, clf=CLASSIFIER):
     # django creates a new object for each query, which causes the expensive
     # ci() method to be called multiple times. Cache that call to save time
     # NB: can't use cache on another object, that's why we use this function

@@ -7,6 +7,7 @@ from gui.models import Vectors, Experiment, Results, FullResults
 from matplotlib import pylab as plt
 import seaborn as sns
 from gui.user_code import get_demsar_params
+from gui.constants import CLASSIFIER, METRIC_DB, BOOTSTRAP_REPS
 
 sns.set_style("whitegrid")
 rc = {'xtick.labelsize': 16,

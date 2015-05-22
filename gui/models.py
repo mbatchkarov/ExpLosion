@@ -153,3 +153,4 @@ class Vectors(models.Model):
     class Meta:
         managed = False
         db_table = 'vectors'
+

@@ -29,6 +29,7 @@ def convert_type(col_name:str, col_value:list):
         return [float(x) for x in col_value]
     return col_value
 
+
 def init_columns_to_show():
     # get all fields of the Experiment object
     data = model_to_dict(Experiment.objects.get(id=1), exclude=excluded_cl_columns)
@@ -39,12 +40,13 @@ def init_columns_to_show():
 
     data = model_to_dict(Vectors.objects.get(id=1), exclude=excluded_vector_columns)
     for column_name in data.keys():
-        columns_to_show['vectors__%s' % column_name] = set(Vectors.objects.values_list(column_name, flat=True))
-        column_types['vectors__%s' % column_name] = Vectors._meta.get_field(column_name).get_internal_type()
-
+        columns_to_show['expansions__vectors__%s' % column_name] = set(Vectors.objects.values_list(column_name, flat=True))
+        column_types['expansions__vectors__%s' % column_name] = Vectors._meta.get_field(column_name).get_internal_type()
 
 
 init_columns_to_show()
+
+
 def index(request):
     return render_to_response('index.html', {'data': OrderedDict(sorted(columns_to_show.items()))})
 
@@ -87,8 +89,8 @@ def show_current_selection(request, allow_pruning=True):
         for field in header:
             if 'vectors__' in field:
                 # need to follow foreign key
-                if exp.vectors:
-                    row.append(getattr(exp.vectors, field.split('__')[1]))
+                if exp.expansions and exp.expansions.vectors:
+                    row.append(getattr(exp.expansions.vectors, field.split('__')[-1]))
                 else:
                     row.append(None)
             else:

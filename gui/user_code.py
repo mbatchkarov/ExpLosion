@@ -164,7 +164,7 @@ def get_performance_table(exp_ids, ci=False):
             score_mean = Results.objects.get(id=exp_id, classifier=CLASSIFIER).accuracy_mean
             score_low, score_high = -1, -1
 
-        vectors = Experiment.objects.get(id=exp_id).vectors
+        vectors = Experiment.objects.get(id=exp_id).expansions.vectors
         row = [exp_id, str(vectors), CLASSIFIER, composer_name, score_mean, score_low, score_high]
         all_data.append(row if ci else row[:-2])
 
@@ -264,5 +264,5 @@ def pairwise_randomised_significance(y, z, nboot=BOOTSTRAP_REPS, statistic=accur
 
 
 def get_composer_name(n):
-    vectors = Experiment.objects.get(id=n).vectors
+    vectors = Experiment.objects.get(id=n).expansions.vectors
     return vectors.composer if vectors else None

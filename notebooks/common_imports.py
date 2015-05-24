@@ -7,7 +7,7 @@ from gui.models import Vectors, Experiment, Results, FullResults, Expansions, Cl
 from matplotlib import pylab as plt
 import seaborn as sns
 from gui.output_utils import get_cv_scores_many_experiment
-from gui.user_code import get_demsar_params
+from gui.user_code import get_demsar_params, pretty_names
 from gui.constants import CLASSIFIER, METRIC_DB, BOOTSTRAP_REPS
 
 sns.set_style("whitegrid")
@@ -101,7 +101,7 @@ def diff_plot_bar(lists, list_ids, xticks,
             if significance_df is None:
                 continue
             if significance_df.significant[0] == 'True':
-                xticks[i] += '*' # todo this looks the opposive of what it should be
+                xticks[i] += '*'  # todo this looks the opposive of what it should be
 
     for i, exp_ids in enumerate(zip(*lists)):
         data, folds = get_cv_scores_many_experiment(exp_ids)
@@ -119,3 +119,45 @@ def diff_plot_bar(lists, list_ids, xticks,
         ax.set(xlabel=xlabel, ylabel=ylabel)
     if hline_at is not None:
         plt.axhline(hline_at, color='black')
+
+
+def dataframe_from_exp_ids(ids, fields_to_include):
+    """
+    Extracts performance results for given experiments into a long-form
+    DataFrame suitable for seaborn.
+    :param ids: list of ids to extract
+    :param fields_to_include: dict column_name_in_df -> django_query_to_get, e.g.
+    {'algo':'expansions__vectors__algorithm', 'comp':'expansions__vectors__composer'}. The DF
+    in this example will have 4 columns, [score, folds, comp, algo]
+    :return:
+    """
+    data = {}
+    scores, folds = get_cv_scores_many_experiment(ids)
+    data['score'] = scores
+    data['folds'] = folds
+
+    for col_name, long_name in fields_to_include.items():
+        param_values = pretty_names(ids, [long_name])
+        data[col_name] = np.repeat(param_values, len(folds) // len(param_values))
+
+    for col_name, values in data.items():
+        print('%s has %d values' % (col_name, len(values)))
+    return pd.DataFrame(data)
+
+
+def sort_df_by(df, by):
+    """
+    Returns the order of items in column `by` in long-form DF that would sort
+    the DF by mean accuracy accross folds. Useful for seaborn's x_order, hue_order, etc
+    :param df:
+    :param by:
+    :return:
+    """
+    mean_scores = df.groupby(by).score.mean()
+    return list(mean_scores.index[mean_scores.argsort()])
+
+
+def random_vect_baseline(corpus='amazon_grouped-tagged'):
+    r_id = Experiment.objects.get(expansions__vectors__algorithm='random_vect',
+                                  labelled=corpus).id
+    return Results.objects.get(id=r_id, classifier=CLASSIFIER).accuracy_mean

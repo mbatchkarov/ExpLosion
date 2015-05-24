@@ -9,48 +9,49 @@ from gui.constants import BOOTSTRAP_REPS, CLASSIFIER, METRIC_DB
 memory = Memory(cachedir='.', verbose=0)
 
 
-class Experiment(models.Model):
-    id = models.IntegerField(primary_key=True)
-    document_features_tr = models.CharField(max_length=255)  # AN+NN, AN only, NN only, ...
-    document_features_ev = models.CharField(max_length=255)
-    use_similarity = models.IntegerField()
-    allow_overlap = models.BooleanField(default=False)
-    use_random_neighbours = models.IntegerField()
-    decode_handler = models.CharField(max_length=255)
-    labelled = models.CharField(max_length=255)
-    vectors = models.OneToOneField('Vectors', blank=True, null=True, related_name='+')
-    entries_of = models.OneToOneField('Vectors', blank=True, null=True, related_name='+')
-    k = models.IntegerField()  # how many neighbours entries are replaced with at decode time
-    neighbour_strategy = models.CharField(max_length=255)
+class Expansions(models.Model):
+    vectors = models.OneToOneField('Vectors', null=True, default=None, on_delete='SET NULL', related_name='vectors')
+    entries_of = models.OneToOneField('Vectors', null=True, default=None, on_delete='SET NULL',
+                                      related_name='entries_of')
+    allow_overlap = models.BooleanField(default=False)  # allow lexical overlap between features and its replacements
+    use_random_neighbours = models.BooleanField(default=False)
+    decode_handler = models.CharField(max_length=255, default='SignifiedOnlyFeatureHandler')  # signifier, signified, hybrid
+    k = models.IntegerField(default=3)  # how many neighbours entries are replaced with at decode time
     noise = models.FloatField(default=0)
+    use_similarity = models.BooleanField(default=False)  # use phrase sim as pseudo term count
+    neighbour_strategy = models.CharField(max_length=255, default='linear')  # how neighbours are found- linear or skipping strategy
 
-    date_ran = models.DateField(blank=True, null=True)
-    git_hash = models.CharField(max_length=255, blank=True)
+    class Meta:
+        managed = False
+        db_table = 'expansions'
+
+
+class Clusters(models.Model):
+    num_clusters = models.IntegerField(null=True, default=None)
+    path = models.CharField(max_length=255, null=True, default=None)
+    # vectors must be consistent with Experiment.vectors
+    vectors = models.OneToOneField('Vectors', null=True, default=None, on_delete='SET NULL')
+
+    class Meta:
+        managed = False
+        db_table = 'clusters'
 
     def __str__(self):
-        basic_settings = ','.join((str(x) for x in [self.labelled, self.vectors]))
-        return '%s: %s' % (self.id, basic_settings)
+        return 'CL:%d-vec%d' % (self.num_clusters, self.vectors.id)
 
-    def __eq__(self, other):
-        if not isinstance(other, Experiment):
-            return False
-        return (
-            self.document_features == other.document_features and
-            self.use_similarity == other.use_similarity and
-            self.use_random_neighbours == other.use_random_neighbours and
-            self.decode_handler == other.decode_handler and
-            self.vectors.id == other.vectors.id and
-            self.labelled == other.labelled and
-            self.k == other.k and
-            self.neighbour_strategy == other.neighbour_strategy and
-            abs(self.noise - other.noise) < 0.001
-        )
 
-    def __hash__(self):
-        return hash((self.document_features, self.use_similarity,
-                     self.use_random_neighbours, self.decode_handler,
-                     self.vectors.id if self.vectors else None, self.labelled,
-                     self.k, self.neighbour_strategy, self.noise))
+class Experiment(models.Model):
+    id = models.IntegerField(primary_key=True)
+    document_features_tr = models.CharField(max_length=255, default='J+N+AN+NN')  # AN+NN, AN only, NN only, ...
+    document_features_ev = models.CharField(max_length=255, default='AN+NN')
+    labelled = models.CharField(max_length=255, )  # name/path of labelled corpus used
+    clusters = models.OneToOneField(Clusters, null=True, default=None, on_delete='SET NULL',
+                                    related_name='clusters')
+    expansions = models.OneToOneField(Expansions, null=True, default=None, on_delete='SET NULL',
+                                      related_name='expansions')
+
+    date_ran = models.DateField(null=True, default=None)
+    git_hash = models.CharField(max_length=255, null=True, default=None)
 
     class Meta:
         managed = False
@@ -68,7 +69,6 @@ class Results(models.Model):
     macrof1_std = models.FloatField()
     _predictions = models.BinaryField(null=True)
     _gold = models.BinaryField(null=True)
-
 
     def get_performance_info(self, metric=METRIC_DB):
         return round(getattr(self, '%s_mean' % metric), 6), \
@@ -153,4 +153,3 @@ class Vectors(models.Model):
     class Meta:
         managed = False
         db_table = 'vectors'
-

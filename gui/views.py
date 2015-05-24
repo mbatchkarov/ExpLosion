@@ -10,7 +10,7 @@ from pandas import DataFrame
 from gui.models import Experiment, Vectors
 from gui.user_code import get_tables, get_generated_figures, get_static_figures
 
-excluded_cl_columns = ['id', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
+excluded_cl_columns = ['id', 'expansions', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
 excluded_vector_columns = ['id', 'can_build', 'path', 'modified', 'size']
 columns_to_show = {}
 

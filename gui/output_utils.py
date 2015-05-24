@@ -8,7 +8,10 @@ from gui.models import Experiment, get_ci
 
 
 def get_single_vectors_field(exp_id, field_name):
-    vectors = Experiment.objects.get(id=exp_id).vectors
+    try:
+        vectors = Experiment.objects.get(id=exp_id).expansions.vectors
+    except AttributeError:
+        vectors = Experiment.objects.get(id=exp_id).clusters.vectors
     return getattr(vectors, field_name) if vectors else None
 
 

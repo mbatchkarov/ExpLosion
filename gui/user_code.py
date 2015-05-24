@@ -75,7 +75,7 @@ def figure_to_base64(fig):
     return base64.b64encode(s.getvalue())
 
 
-def pretty_names(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
+def pretty_names(exp_ids, name_format=['expansions__vectors__algorithm', 'expansions__vectors__composer']):
     names = []
     for eid in exp_ids:
         e = Experiment.objects.values_list(*name_format).get(id=eid)
@@ -84,7 +84,7 @@ def pretty_names(exp_ids, name_format=['vectors__algorithm', 'vectors__composer'
     return names
 
 
-def get_demsar_params(exp_ids, name_format=['vectors__algorithm', 'vectors__composer']):
+def get_demsar_params(exp_ids, name_format=['expansions__vectors__algorithm', 'expansions__vectors__composer']):
     """
     Gets parameters for `get_demsar_diagram`. Methods whose results are not in DB are dropped silently
     :param exp_ids: ids of experiments to look up

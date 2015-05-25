@@ -161,3 +161,56 @@ def random_vect_baseline(corpus='amazon_grouped-tagged'):
     r_id = Experiment.objects.get(expansions__vectors__algorithm='random_vect',
                                   labelled=corpus).id
     return Results.objects.get(id=r_id, classifier=CLASSIFIER).accuracy_mean
+
+
+def settings_of(eid, exclude=[]):
+    """
+    Returns a dict of the settings needed to query for an experiment, e.g.
+    >>> s = settings_of(21)
+    >>> Experiment.objects.get(**s).id == 21
+
+    Useful in two cases:
+    1) get very similar experiment
+    >>> s['clusters__num_clusters'] = 200
+    >>> Experiment.objects.get(**s)
+    2) use GUI to find ID of an interesting experiment, then dump settings into a program
+    :param eid: experiment ID
+    :param exclude: fields to drop
+    :return:
+    """
+    from copy import deepcopy
+
+    e = Experiment.objects.get(id=eid)
+    settings = deepcopy(Experiment.objects.filter(id=eid).values()[0])
+
+    if e.expansions:
+        nested_keys = Expansions.objects.filter(id=e.expansions.id).values()[0]
+        settings.update({'expansions__%s' % k: v for k, v in nested_keys.items()})
+        del settings['expansions__id']
+        if e.expansions.vectors:
+            nested_keys = Vectors.objects.filter(id=e.expansions.vectors.id).values()[0]
+            settings.update({'expansions__vectors__%s' % k: v for k, v in nested_keys.items()})
+            del settings['expansions__vectors__id']
+            del settings['expansions__vectors_id']
+            del settings['expansions__vectors__path']
+            del settings['expansions__vectors__size']
+            del settings['expansions__vectors__modified']
+
+    if e.clusters:
+        nested_keys = Clusters.objects.filter(id=e.clusters.id).values()[0]
+        settings.update({'clusters__%s' % k: v for k, v in nested_keys.items()})
+        del settings['clusters__id']
+
+    del settings['expansions_id']
+    del settings['clusters_id']
+    del settings['id']
+    del settings['git_hash']
+    del settings['date_ran']
+
+    for key in exclude:
+        try:
+            del settings[key]
+        except KeyError:
+            print('Cannot delete %s from settings of exp %d' % (key, eid))
+
+    return settings

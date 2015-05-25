@@ -163,6 +163,16 @@ def random_vect_baseline(corpus='amazon_grouped-tagged'):
     return Results.objects.get(id=r_id, classifier=CLASSIFIER).accuracy_mean
 
 
+def nondistributional_baseline(corpus='amazon_grouped-tagged',
+                               document_features_tr='J+N+AN+NN',
+                               document_features_ev='AN+NN', **kwargs):
+    res = Experiment.objects.get(labelled=corpus,
+                                 document_features_tr=document_features_tr,
+                                 document_features_ev=document_features_ev,
+                                 expansions__decode_handler='BaseFeatureHandler')
+    return Results.objects.get(id=res.id, classifier=CLASSIFIER).accuracy_mean
+
+
 def settings_of(eid, exclude=[]):
     """
     Returns a dict of the settings needed to query for an experiment, e.g.

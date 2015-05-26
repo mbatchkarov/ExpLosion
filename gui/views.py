@@ -2,49 +2,41 @@ from collections import OrderedDict
 import os
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
-from django.forms.models import model_to_dict
 from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
 from pandas import DataFrame
-
-from gui.models import Experiment, Vectors
+from gui.models import Experiment
 from gui.user_code import get_tables, get_generated_figures, get_static_figures
+from notebooks.common_imports import settings_of
 
-excluded_cl_columns = ['id', 'expansions', 'date_ran', 'git_hash', 'vectors']  # todo id needed in both these?
-excluded_vector_columns = ['id', 'can_build', 'path', 'modified', 'size']
-columns_to_show = {}
 
-column_types = {}
+EXCLUDED_COLUMNS = ['expansions__vectors_id']
 
 
 def convert_type(col_name:str, col_value:list):
     col_type = column_types.get(col_name, None)
     if col_type is None:
         return col_value
-    if col_type == 'BooleanField':
-        return [bool(int(x)) for x in col_value]
-    elif col_type == 'IntegerField':
-        return [int(x) for x in col_value]
-    elif col_type == 'FloatField':
-        return [float(x) for x in col_value]
-    return col_value
+    return [None if x == 'None' else col_type(x) for x in col_value]
 
 
 def init_columns_to_show():
     # get all fields of the Experiment object
-    data = model_to_dict(Experiment.objects.get(id=1), exclude=excluded_cl_columns)
+    data = {}
+    for e in Experiment.objects.all():
+        data.update(settings_of(e.id, exclude=EXCLUDED_COLUMNS))
+
     # field -> all values it has in the database
+    names, types = dict(), dict()
     for column_name in data.keys():
-        columns_to_show[column_name] = set(Experiment.objects.values_list(column_name, flat=True))
-        column_types[column_name] = Experiment._meta.get_field(column_name).get_internal_type()
-
-    data = model_to_dict(Vectors.objects.get(id=1), exclude=excluded_vector_columns)
-    for column_name in data.keys():
-        columns_to_show['expansions__vectors__%s' % column_name] = set(Vectors.objects.values_list(column_name, flat=True))
-        column_types['expansions__vectors__%s' % column_name] = Vectors._meta.get_field(column_name).get_internal_type()
+        col_values = set(Experiment.objects.values_list(column_name, flat=True))
+        names[column_name] = col_values
+        col_type = set(type(x) for x in col_values if x is not None)
+        types[column_name] = list(col_type)[0]
+    return names, types
 
 
-init_columns_to_show()
+columns_to_show, column_types = init_columns_to_show()
 
 
 def index(request):
@@ -77,24 +69,15 @@ def show_current_selection(request, allow_pruning=True):
     # render all currently requested experiments
     existing_experiments = [foo for foo in request.session.get('groups', [])]
     # representative_experiment_ids = [foo[0] for foo in existing_experiments]
-    existing_experiments = Experiment.objects.all().filter(id__in=existing_experiments)
+    existing_experiments = Experiment.objects.filter(id__in=existing_experiments)
     if len(existing_experiments) < 1:
         return HttpResponse('No experiments match your current selection')
     if not columns_to_show:
         init_columns_to_show()
-    header = ['id', 'vectors__id'] + list(columns_to_show.keys())
+    header = ['id', 'expansions__vectors__id'] + list(columns_to_show.keys())
     rows = []
     for i, exp in enumerate(existing_experiments):
-        row = []
-        for field in header:
-            if 'vectors__' in field:
-                # need to follow foreign key
-                if exp.expansions and exp.expansions.vectors:
-                    row.append(getattr(exp.expansions.vectors, field.split('__')[-1]))
-                else:
-                    row.append(None)
-            else:
-                row.append(getattr(exp, field))
+        row = Experiment.objects.filter(id=exp.id).values_list(*header)[0]
         rows.append(row)
     table = DataFrame(rows, columns=header).set_index(['id'])[sorted(header[1:])]
     print(rows)
@@ -145,3 +128,7 @@ def prune_table(df):
 
 def to_html(table):
     return table.to_html(classes="table table-nonfluid table-hover table-bordered table-condensed tablesorter")
+
+if __name__ == '__main__':
+    import django_standalone
+    init_columns_to_show()

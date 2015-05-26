@@ -210,6 +210,8 @@ def settings_of(eid, exclude=[]):
         nested_keys = Clusters.objects.filter(id=e.clusters.id).values()[0]
         settings.update({'clusters__%s' % k: v for k, v in nested_keys.items()})
         del settings['clusters__id']
+        del settings['clusters__vectors_id']
+        del settings['clusters__path']
 
     del settings['expansions_id']
     del settings['clusters_id']
@@ -221,6 +223,6 @@ def settings_of(eid, exclude=[]):
         try:
             del settings[key]
         except KeyError:
-            print('Cannot delete %s from settings of exp %d' % (key, eid))
+            pass
 
     return settings

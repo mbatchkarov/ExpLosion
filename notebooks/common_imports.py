@@ -148,7 +148,7 @@ def dataframe_from_exp_ids(ids, fields_to_include):
 def sort_df_by(df, by):
     """
     Returns the order of items in column `by` in long-form DF that would sort
-    the DF by mean accuracy accross folds. Useful for seaborn's x_order, hue_order, etc
+    the DF by mean accuracy across folds. Useful for seaborn's x_order, hue_order, etc
     :param df:
     :param by:
     :return:
@@ -193,18 +193,24 @@ def settings_of(eid, exclude=[]):
     e = Experiment.objects.get(id=eid)
     settings = deepcopy(Experiment.objects.filter(id=eid).values()[0])
 
+    def _add_vectors_settings(nested_keys, keyword):
+        settings.update({'%s__vectors__%s' % (keyword, k): v for k, v in nested_keys.items()})
+        del settings['%s__vectors__id' % keyword]
+        try:
+            del settings['%s__vectors_id' % keyword]
+        except KeyError:
+            pass
+        del settings['%s__vectors__path' % keyword]
+        del settings['%s__vectors__size' % keyword]
+        del settings['%s__vectors__modified' % keyword]
+
     if e.expansions:
         nested_keys = Expansions.objects.filter(id=e.expansions.id).values()[0]
         settings.update({'expansions__%s' % k: v for k, v in nested_keys.items()})
         del settings['expansions__id']
         if e.expansions.vectors:
             nested_keys = Vectors.objects.filter(id=e.expansions.vectors.id).values()[0]
-            settings.update({'expansions__vectors__%s' % k: v for k, v in nested_keys.items()})
-            del settings['expansions__vectors__id']
-            del settings['expansions__vectors_id']
-            del settings['expansions__vectors__path']
-            del settings['expansions__vectors__size']
-            del settings['expansions__vectors__modified']
+            _add_vectors_settings(nested_keys, 'expansions')
 
     if e.clusters:
         nested_keys = Clusters.objects.filter(id=e.clusters.id).values()[0]
@@ -212,6 +218,9 @@ def settings_of(eid, exclude=[]):
         del settings['clusters__id']
         del settings['clusters__vectors_id']
         del settings['clusters__path']
+        if e.clusters.vectors:
+            nested_keys = Vectors.objects.filter(id=e.clusters.vectors.id).values()[0]
+            _add_vectors_settings(nested_keys, 'clusters')
 
     del settings['expansions_id']
     del settings['clusters_id']

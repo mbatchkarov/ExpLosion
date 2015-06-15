@@ -87,7 +87,7 @@ class Results(models.Model):
         return np.array(json.loads(gzip.decompress(self._gold).decode('utf8')))
 
     def ci(self, nboot=BOOTSTRAP_REPS, statistic=accuracy_score):
-        print('Calculating CI for exp', self.id)
+        print('Calculating CI for exp', self.id.id)
         gold = self.gold
         predictions = self.predictions
 

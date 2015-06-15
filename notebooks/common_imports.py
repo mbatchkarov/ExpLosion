@@ -133,7 +133,7 @@ def dataframe_from_exp_ids(ids, fields_to_include):
     """
     data = {}
     scores, folds = get_cv_scores_many_experiment(ids)
-    data['score'] = scores
+    data['Accuracy'] = scores
     data['folds'] = folds
 
     for col_name, long_name in fields_to_include.items():
@@ -153,7 +153,7 @@ def sort_df_by(df, by):
     :param by:
     :return:
     """
-    mean_scores = df.groupby(by).score.mean()
+    mean_scores = df.groupby(by).Accuracy.mean()
     return list(mean_scores.index[mean_scores.argsort()])
 
 

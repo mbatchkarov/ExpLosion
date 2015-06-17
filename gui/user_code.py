@@ -75,11 +75,12 @@ def figure_to_base64(fig):
     return base64.b64encode(s.getvalue())
 
 
-def pretty_names(exp_ids, name_format=['expansions__vectors__algorithm', 'expansions__vectors__composer']):
+def pretty_names(exp_ids, name_format=['expansions__vectors__algorithm', 'expansions__vectors__composer'],
+                 abbreviate=True):
     names = []
     for eid in exp_ids:
         e = Experiment.objects.values_list(*name_format).get(id=eid)
-        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e))
+        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e)) if abbreviate else '-'.join(e)
         names.append(this_name)
     return names
 

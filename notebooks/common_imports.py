@@ -121,7 +121,7 @@ def diff_plot_bar(lists, list_ids, xticks,
         plt.axhline(hline_at, color='black')
 
 
-def dataframe_from_exp_ids(ids, fields_to_include):
+def dataframe_from_exp_ids(ids, fields_to_include, abbreviate=True):
     """
     Extracts performance results for given experiments into a long-form
     DataFrame suitable for seaborn.
@@ -129,6 +129,7 @@ def dataframe_from_exp_ids(ids, fields_to_include):
     :param fields_to_include: dict column_name_in_df -> django_query_to_get, e.g.
     {'algo':'expansions__vectors__algorithm', 'comp':'expansions__vectors__composer'}. The DF
     in this example will have 4 columns, [score, folds, comp, algo]
+    :param abbreviate: whether to run names of method through the abbreviation map at constants.ABBREVIATIONS
     :return:
     """
     data = {}
@@ -137,7 +138,7 @@ def dataframe_from_exp_ids(ids, fields_to_include):
     data['folds'] = folds
 
     for col_name, long_name in fields_to_include.items():
-        param_values = pretty_names(ids, [long_name])
+        param_values = pretty_names(ids, [long_name], abbreviate=abbreviate)
         data[col_name] = np.repeat(param_values, len(folds) // len(param_values))
 
     for col_name, values in data.items():

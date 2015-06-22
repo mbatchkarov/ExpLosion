@@ -64,8 +64,8 @@ def diff_plot(list1, list2, labels, sort_by_magnitude=True, rotation=90):
     print(order)
     g = sns.factorplot('Model', 'Delta', data=df, kind='bar',
                        x_order=order if sort_by_magnitude else None,
-                       aspect=1.5);
-    g.set_xticklabels(rotation=rotation);
+                       aspect=1.5)
+    g.set_xticklabels(rotation=rotation)
     # remove axis labels
     for ax in g.axes.flat:
         ax.set(xlabel='', ylabel='')

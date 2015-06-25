@@ -236,3 +236,25 @@ def settings_of(eid, exclude=[]):
             pass
 
     return settings
+
+
+def compare_settings(*ids):
+    """
+    Comparares the settings of several experiments and prints the differences.
+    Useful for when too many experiments are showing up in plots, because the query
+    isn't narrow enough
+
+    Example:
+    >>> compare_settings(1, 2)
+      expansions__vectors__dimensionality         exp 1        exp 2
+    0       expansions__vectors__composer  random_neigh  random_vect
+    1      expansions__vectors__algorithm  random_neigh  random_vect
+    """
+    dicts = [settings_of(i) for i in ids]
+    data = []
+    for key in set().union(*[d.keys() for d in dicts]):
+        in_all = all(key in d for d in dicts)
+        all_equal = len(set(d.get(key, 'N/A') for d in dicts)) == 1
+        if not (in_all and all_equal):
+            data.append([key] + [d.get(key, 'N/A') for d in dicts])
+    return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')

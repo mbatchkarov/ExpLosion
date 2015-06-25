@@ -87,7 +87,7 @@ class Results(models.Model):
         return np.array(json.loads(gzip.decompress(self._gold).decode('utf8')))
 
     def ci(self, nboot=BOOTSTRAP_REPS, statistic=accuracy_score):
-        print('Calculating CI for exp', self.id.id)
+        print('Calculating CI for exp', self.id.id, flush=True)
         gold = self.gold
         predictions = self.predictions
 
@@ -142,7 +142,6 @@ class Vectors(models.Model):
     modified = models.DateField(blank=True, null=True)
     size = models.IntegerField(blank=True, null=True)
     rep = models.IntegerField()
-    use_ppmi = models.BooleanField(default=0)
 
     def __str__(self):
         fields = ','.join((str(x) for x in [self.algorithm, self.composer,

@@ -15,11 +15,13 @@ class Expansions(models.Model):
                                       related_name='entries_of')
     allow_overlap = models.BooleanField(default=False)  # allow lexical overlap between features and its replacements
     use_random_neighbours = models.BooleanField(default=False)
-    decode_handler = models.CharField(max_length=255, default='SignifiedOnlyFeatureHandler')  # signifier, signified, hybrid
+    decode_handler = models.CharField(max_length=255,
+                                      default='SignifiedOnlyFeatureHandler')  # signifier, signified, hybrid
     k = models.IntegerField(default=3)  # how many neighbours entries are replaced with at decode time
     noise = models.FloatField(default=0)
     use_similarity = models.BooleanField(default=False)  # use phrase sim as pseudo term count
-    neighbour_strategy = models.CharField(max_length=255, default='linear')  # how neighbours are found- linear or skipping strategy
+    neighbour_strategy = models.CharField(max_length=255,
+                                          default='linear')  # how neighbours are found- linear or skipping strategy
 
     class Meta:
         managed = False
@@ -58,6 +60,25 @@ class Experiment(models.Model):
         db_table = 'classificationexperiment'
 
 
+class _Dummy():
+    def ci(self, *args, **kwargs):
+        return 0, 0, 0, [0] * BOOTSTRAP_REPS
+
+
+class GetOrZeroManager(models.Manager):
+    """
+    Adds get_or_none method to objects
+    Source http://stackoverflow.com/a/2021833/419338
+    """
+
+    def get_or_zero(self, **kwargs):
+        try:
+            return self.get(**kwargs)
+        except self.model.DoesNotExist:
+            print('No results for query', kwargs)
+            return _Dummy()
+
+
 class Results(models.Model):
     id = models.OneToOneField(Experiment, primary_key=True)
     classifier = models.CharField(max_length=255)
@@ -69,6 +90,8 @@ class Results(models.Model):
     macrof1_std = models.FloatField()
     _predictions = models.BinaryField(null=True)
     _gold = models.BinaryField(null=True)
+
+    objects = GetOrZeroManager()
 
     def get_performance_info(self, metric=METRIC_DB):
         return round(getattr(self, '%s_mean' % metric), 6), \
@@ -111,7 +134,9 @@ def get_ci(exp_id, clf=CLASSIFIER):
     # django creates a new object for each query, which causes the expensive
     # ci() method to be called multiple times. Cache that call to save time
     # NB: can't use cache on another object, that's why we use this function
-    return Results.objects.get(id=exp_id, classifier=clf).ci()
+    # also, return 0 if no results for this experiment. that way plotting code will
+    # at least run, but the error will be visible
+    return Results.objects.get_or_zero(id=exp_id, classifier=clf).ci()
 
 
 class FullResults(models.Model):

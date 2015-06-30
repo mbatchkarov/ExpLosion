@@ -54,6 +54,7 @@ class Experiment(models.Model):
 
     date_ran = models.DateField(null=True, default=None)
     git_hash = models.CharField(max_length=255, null=True, default=None)
+    minutes_taken = models.FloatField(null=True, default=None)
 
     class Meta:
         managed = False

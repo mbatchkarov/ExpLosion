@@ -258,3 +258,11 @@ def compare_settings(*ids):
         if not (in_all and all_equal):
             data.append([key] + [d.get(key, 'N/A') for d in dicts])
     return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
+
+def sparsify_axis_labels(ax, n=2):
+    """
+    Sparsify tick labels on the given matplotlib axis, keeping only those whose index is divisible by n
+    """
+    for idx, label in enumerate(ax.xaxis.get_ticklabels()):
+        if idx % n != 0:
+            label.set_visible(False)

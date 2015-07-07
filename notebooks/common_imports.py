@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pandas as pd
 import pdb
@@ -259,6 +260,7 @@ def compare_settings(*ids):
             data.append([key] + [d.get(key, 'N/A') for d in dicts])
     return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
 
+
 def sparsify_axis_labels(ax, n=2):
     """
     Sparsify tick labels on the given matplotlib axis, keeping only those whose index is divisible by n
@@ -266,3 +268,27 @@ def sparsify_axis_labels(ax, n=2):
     for idx, label in enumerate(ax.xaxis.get_ticklabels()):
         if idx % n != 0:
             label.set_visible(False)
+
+
+def compare_neighbours(vectors, names, words=[]):
+    """
+    Compare the neighbours of several entries in several thesauri
+    :param vectors: list of vectors to look up entries in
+    :param names: pretty (human-readable) names for the vectors
+    :param words: entries to compare. If none are specified, a random sample of
+    10 unigrams is selected
+    :return:
+    """
+    if not words:
+        words = random.sample([x for x in vectors[0].keys() if not x.count('_')], 10)
+    data = []
+    for w in words:
+        this_row = []
+        for v in vectors:
+            neigh = v.get_nearest_neighbours(w)
+            if neigh:
+                this_row.append(', '.join(n[0] for n in neigh[:4]))
+            else:
+                this_row.append(None)
+        data.append(this_row)
+    return pd.DataFrame(data, index=words, columns=names)

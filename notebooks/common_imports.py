@@ -58,7 +58,7 @@ def diff_plot(list1, list2, labels, sort_by_magnitude=True, rotation=90):
         diffs.append(mean_scores[0] - mean_scores[1])
         if significance_df is None:
             continue
-        if significance_df.significant[0] == 'True':
+        if significance_df.significant[0]:
             labels[i] += '*'
     df = pd.DataFrame(dict(Model=labels, Delta=diffs))
     order = df.Model[df.Delta.argsort()].tolist()  # seaborn doesn't like DataFrame-s here
@@ -101,8 +101,8 @@ def diff_plot_bar(lists, list_ids, xticks,
                                                                                  'expansions__vectors__dimensionality'])
             if significance_df is None:
                 continue
-            if significance_df.significant[0] == 'True':
-                xticks[i] += '*'  # todo this looks the opposive of what it should be
+            if significance_df.significant[0]:
+                xticks[i] += '*'
 
     for i, exp_ids in enumerate(zip(*lists)):
         data, folds = get_cv_scores_many_experiment(exp_ids)

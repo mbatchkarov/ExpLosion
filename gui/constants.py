@@ -1,6 +1,7 @@
 METRIC_DB = 'accuracy'
 METRIC_CSV_FILE = 'accuracy_score'
 BOOTSTRAP_REPS = 500
+SIGNIFICANCE_LEVEL = 0.01
 CLASSIFIER = 'MultinomialNB'
 
 # some names are too long to fit in figures, abbreviate as follows:

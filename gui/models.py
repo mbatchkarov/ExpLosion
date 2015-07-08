@@ -4,7 +4,7 @@ from django.db import models
 from joblib import Memory
 import numpy as np
 from sklearn.metrics import accuracy_score
-from gui.constants import BOOTSTRAP_REPS, CLASSIFIER, METRIC_DB
+from gui.constants import BOOTSTRAP_REPS, CLASSIFIER, METRIC_DB, SIGNIFICANCE_LEVEL
 
 memory = Memory(cachedir='.', verbose=0)
 
@@ -125,8 +125,8 @@ class Results(models.Model):
         scores = np.array(sorted(scores))
         self.bootstrap_scores = scores
         self.mean = scores.mean()
-        self.low = np.percentile(scores, 2.5)
-        self.high = np.percentile(scores, 97.5)
+        self.low = np.percentile(scores, 100 * (SIGNIFICANCE_LEVEL / 2))
+        self.high = np.percentile(scores, 100 - 100 * (SIGNIFICANCE_LEVEL / 2))
         return self.mean, self.low, self.high, self.bootstrap_scores
 
 

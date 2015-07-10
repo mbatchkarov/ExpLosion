@@ -144,7 +144,8 @@ def dataframe_from_exp_ids(ids, fields_to_include, abbreviate=True):
 
     for col_name, values in data.items():
         print('%s has %d values' % (col_name, len(values)))
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    return df[df.Accuracy > -1] # remove experiments where results are missing
 
 
 def sort_df_by(df, by):

@@ -63,7 +63,7 @@ class Experiment(models.Model):
 
 class _Dummy():
     def ci(self, *args, **kwargs):
-        return 0, 0, 0, [0] * BOOTSTRAP_REPS
+        return -1, -1, -1, [-1] * BOOTSTRAP_REPS
 
 
 class GetOrZeroManager(models.Manager):

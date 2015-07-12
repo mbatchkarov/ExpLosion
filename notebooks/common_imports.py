@@ -145,7 +145,7 @@ def dataframe_from_exp_ids(ids, fields_to_include, abbreviate=True):
     for col_name, values in data.items():
         print('%s has %d values' % (col_name, len(values)))
     df = pd.DataFrame(data)
-    return df[df.Accuracy > -1] # remove experiments where results are missing
+    return df[df.Accuracy > -1]  # remove experiments where results are missing
 
 
 def sort_df_by(df, by):
@@ -260,7 +260,7 @@ def compare_settings(*ids):
         all_equal = len(set(d.get(key, 'N/A') for d in dicts)) == 1
         if not (in_all and all_equal):
             data.append([key] + [d.get(key, 'N/A') for d in dicts])
-    return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
+        return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
 
 
 def sparsify_axis_labels(ax, n=2):
@@ -294,3 +294,7 @@ def compare_neighbours(vectors, names, words=[]):
                 this_row.append(None)
         data.append(this_row)
     return pd.DataFrame(data, index=words, columns=names)
+
+
+def my_bootstrap(*args, **kwargs):
+    return np.vstack(args)

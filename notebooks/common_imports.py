@@ -230,6 +230,7 @@ def settings_of(eid, exclude=[]):
     del settings['id']
     del settings['git_hash']
     del settings['date_ran']
+    del settings['minutes_taken']
 
     for key in exclude:
         try:

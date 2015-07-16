@@ -272,7 +272,7 @@ def sparsify_axis_labels(ax, n=2):
             label.set_visible(False)
 
 
-def compare_neighbours(vectors, names, words=[]):
+def compare_neighbours(vectors, names, words=[], n_neighbours=4):
     """
     Compare the neighbours of several entries in several thesauri
     :param vectors: list of vectors to look up entries in
@@ -289,7 +289,7 @@ def compare_neighbours(vectors, names, words=[]):
         for v in vectors:
             neigh = v.get_nearest_neighbours(w)
             if neigh:
-                this_row.append(', '.join(n[0] for n in neigh[:4]))
+                this_row.append(', '.join(n[0] for n in neigh[:n_neighbours]))
             else:
                 this_row.append(None)
         data.append(this_row)

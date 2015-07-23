@@ -298,3 +298,15 @@ def compare_neighbours(vectors, names, words=[], n_neighbours=4):
 
 def my_bootstrap(*args, **kwargs):
     return np.vstack(args)
+
+
+def tsplot_for_facetgrid(*args, **kwargs):
+    """
+    sns.tsplot does not work with sns.FacetGrid.map (all condition in a subplot are drawn in the same color).
+    This is because either tsplot misinterprets the color parameter, or because FacetGrid incorrectly
+    decides to pass in a color parameter to tsplot. Not sure which in which, but removing that parameter
+    fixes the problem
+    """
+    if 'color' in kwargs:
+        kwargs.pop('color')
+    sns.tsplot(*args, **kwargs)

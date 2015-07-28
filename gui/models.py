@@ -168,6 +168,8 @@ class Vectors(models.Model):
     modified = models.DateField(blank=True, null=True)
     size = models.IntegerField(blank=True, null=True)
     rep = models.IntegerField()
+    avg = models.BooleanField(default=False)
+    reorder = models.BooleanField(default=False)
 
     def __str__(self):
         fields = ','.join((str(x) for x in [self.algorithm, self.composer,

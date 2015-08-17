@@ -74,7 +74,7 @@ def diff_plot(list1, list2, labels, sort_by_magnitude=True, rotation=90):
 
 def diff_plot_bar(lists, list_ids, xticks,
                   rotation=0, xlabel='', ylabel='Accuracy',
-                  hue_order=None, hline_at=None):
+                  hline_at=None, **kwargs):
     """
     Compare the scores of paired of experiment ids and plot a bar chart or their accuracies.
     :param list1, list2: [1,2,3], [4,5,6] means exp 1 is compared to exp 4, etc ...
@@ -84,8 +84,8 @@ def diff_plot_bar(lists, list_ids, xticks,
     If only two lists are provided a significance test is run for each pair and a * is added if pair is
     significantly different
     :param rotation: angle of x axis ticks
-    :param hue_order: order of list1_id, list2_id
     :param hline_at: draw a horizontal line at y=hline_at. Useful for baselines, etc
+    :param kwargs: extra arguments for sns.factorplot
     """
     assert len(set(map(len, lists))) == 1
     assert len(list_ids) == len(lists)
@@ -113,7 +113,7 @@ def diff_plot_bar(lists, list_ids, xticks,
             df_groups.extend(len(folds) // len(lists) * [list_id])
 
     df = pd.DataFrame(dict(Accuracy=df_scores, reps=df_reps, Method=df_groups, labels=df_labels))
-    g = sns.factorplot(y='Accuracy', hue='Method', x='labels', data=df, kind='bar', aspect=1.5, hue_order=hue_order);
+    g = sns.factorplot(y='Accuracy', hue='Method', x='labels', data=df, kind='bar', aspect=1.5, **kwargs);
     g.set_xticklabels(rotation=rotation);
     # remove axis labels
     for ax in g.axes.flat:
@@ -260,7 +260,7 @@ def compare_settings(*ids):
         all_equal = len(set(d.get(key, 'N/A') for d in dicts)) == 1
         if not (in_all and all_equal):
             data.append([key] + [d.get(key, 'N/A') for d in dicts])
-        return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
+    return pd.DataFrame(data, columns=['key'] + ['exp %d' % i for i in ids]).set_index('key')
 
 
 def sparsify_axis_labels(ax, n=2):

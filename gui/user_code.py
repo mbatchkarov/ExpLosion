@@ -184,6 +184,20 @@ def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
     return np.concatenate([y, y_gold])
 
 
+def pairwise_significance_exp_ids(ids, name_format=['id']):
+    """
+    Computes significance between predefined pairs of experiments
+    :param ids: list of pairs of experiments ids to be compared [(e1, e2), (e1, e3), (e3, e4)]
+    :param name_format:
+    """
+    tables = []
+    for pair in ids:
+        print('Running significance for', pair)
+        tables.append(get_demsar_params(pair, name_format=name_format)[0])
+    return pd.concat(tables, ignore_index=True)
+
+
+
 @memory.cache
 def pairwise_randomised_significance(y, z, nboot=BOOTSTRAP_REPS, statistic=accuracy_score):
     """

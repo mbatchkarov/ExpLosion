@@ -180,7 +180,8 @@ def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
     y_gold = Results.objects.get(id=exp_id, classifier=clf).gold
 
     # check gold standard matches right answers
-    assert set(y) == set(y_gold)
+    # assert set(y) == set(y_gold) # cant assert that, a classifier may never predict a class
+    assert len(y) == len(y_gold)
     return np.concatenate([y, y_gold])
 
 

@@ -33,6 +33,7 @@ class Clusters(models.Model):
     path = models.CharField(max_length=255, null=True, default=None)
     # vectors must be consistent with Experiment.vectors
     vectors = models.OneToOneField('Vectors', null=True, default=None, on_delete='SET NULL')
+    noise = models.FloatField(default=0)
 
     class Meta:
         managed = False

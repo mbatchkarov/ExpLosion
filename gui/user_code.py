@@ -1,6 +1,7 @@
 from io import BytesIO
 import base64
 from itertools import combinations
+from joblib import Parallel, delayed
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -108,7 +109,7 @@ def get_demsar_params(exp_ids, name_format=['expansions__vectors__algorithm', 'e
                                                           get_data_for_signif_test(b))
         data.append((names[a], Results.objects.get(id=a, classifier=CLASSIFIER).accuracy_mean,
                      names[b], Results.objects.get(id=b, classifier=CLASSIFIER).accuracy_mean,
-                    obs_diff, pval, pval < SIGNIFICANCE_LEVEL))
+                     obs_diff, pval, pval < SIGNIFICANCE_LEVEL))
     sign_table = pd.DataFrame(data, columns='name1 acc1 name2 acc2 mean_diff pval significant'.split())
     return sign_table, np.array(names), np.array(mean_scores)
 
@@ -185,18 +186,19 @@ def get_data_for_signif_test(exp_id, clf=CLASSIFIER):
     return np.concatenate([y, y_gold])
 
 
+def _pairwise_inner(pair, name_format):
+    print('Running significance for', pair)
+    return get_demsar_params(pair, name_format=name_format)[0]
+
+
 def pairwise_significance_exp_ids(ids, name_format=['id']):
     """
     Computes significance between predefined pairs of experiments
     :param ids: list of pairs of experiments ids to be compared [(e1, e2), (e1, e3), (e3, e4)]
     :param name_format:
     """
-    tables = []
-    for pair in ids:
-        print('Running significance for', pair)
-        tables.append(get_demsar_params(pair, name_format=name_format)[0])
+    tables = Parallel(n_jobs=-1)(delayed(_pairwise_inner)(pair, name_format) for pair in ids)
     return pd.concat(tables, ignore_index=True)
-
 
 
 @memory.cache

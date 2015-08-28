@@ -81,7 +81,7 @@ def pretty_names(exp_ids, name_format=['expansions__vectors__algorithm', 'expans
     names = []
     for eid in exp_ids:
         e = Experiment.objects.values_list(*name_format).get(id=eid)
-        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e)) if abbreviate else '-'.join(e)
+        this_name = '-'.join((str(ABBREVIATIONS.get(x, x)) for x in e)) if abbreviate else '-'.join(map(str, e))
         names.append(this_name)
     return names
 

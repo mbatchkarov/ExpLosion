@@ -9,7 +9,7 @@ from matplotlib import pylab as plt
 import seaborn as sns
 from gui.output_utils import get_cv_scores_many_experiment
 from gui.user_code import get_demsar_params, pretty_names
-from gui.constants import CLASSIFIER, METRIC_DB, BOOTSTRAP_REPS
+from gui.constants import CLASSIFIER, METRIC_DB, BOOTSTRAP_REPS, SIGNIFICANCE_LEVEL
 
 sns.set_style("whitegrid")
 rc = {'xtick.labelsize': 16,
@@ -310,3 +310,14 @@ def tsplot_for_facetgrid(*args, **kwargs):
     if 'color' in kwargs:
         kwargs.pop('color')
     sns.tsplot(*args, **kwargs)
+
+
+def performance_table(df):
+    def ci_width(scores):
+        low = np.percentile(scores, 100 * (SIGNIFICANCE_LEVEL / 2))
+        high = np.percentile(scores, 100 - 100 * (SIGNIFICANCE_LEVEL / 2))
+        return (high - low) / 2
+
+    cols = set(df.columns) - set('id Accuracy folds'.split())
+    print('keeping', cols)
+    return df.groupby(sorted(list(cols))).agg([np.mean, ci_width]).Accuracy * 100

@@ -197,7 +197,7 @@ def pairwise_significance_exp_ids(ids, name_format=['id']):
     :param ids: list of pairs of experiments ids to be compared [(e1, e2), (e1, e3), (e3, e4)]
     :param name_format:
     """
-    tables = Parallel(n_jobs=-1)(delayed(_pairwise_inner)(pair, name_format) for pair in ids)
+    tables = Parallel(n_jobs=1)(delayed(_pairwise_inner)(pair, name_format) for pair in ids)
     return pd.concat(tables, ignore_index=True)
 
 

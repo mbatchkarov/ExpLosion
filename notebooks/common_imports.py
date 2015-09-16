@@ -74,7 +74,7 @@ def diff_plot(list1, list2, labels, sort_by_magnitude=True, rotation=90):
 
 def diff_plot_bar(lists, list_ids, xticks,
                   rotation=0, xlabel='', ylabel='Accuracy',
-                  hline_at=None, **kwargs):
+                  hline_at=None, legend_title='Method', **kwargs):
     """
     Compare the scores of paired of experiment ids and plot a bar chart or their accuracies.
     :param list1, list2: [1,2,3], [4,5,6] means exp 1 is compared to exp 4, etc ...
@@ -113,7 +113,8 @@ def diff_plot_bar(lists, list_ids, xticks,
             df_groups.extend(len(folds) // len(lists) * [list_id])
 
     df = pd.DataFrame(dict(Accuracy=df_scores, reps=df_reps, Method=df_groups, labels=df_labels))
-    g = sns.factorplot(y='Accuracy', hue='Method', x='labels', data=df, kind='bar', aspect=1.5, **kwargs);
+    df.rename(columns={'Method': legend_title}, inplace=True)
+    g = sns.factorplot(y='Accuracy', hue=legend_title, x='labels', data=df, kind='bar', aspect=1.5, **kwargs);
     g.set_xticklabels(rotation=rotation);
     # remove axis labels
     for ax in g.axes.flat:

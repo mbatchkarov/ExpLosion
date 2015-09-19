@@ -32,7 +32,7 @@ def get_cv_scores_single_experiment(n, clf=CLASSIFIER):
 
 
 def get_cv_scores_many_experiment(ids, clf=CLASSIFIER):
-    scores = Parallel(n_jobs=-1)(delayed(get_cv_scores_single_experiment)(i, clf=clf) for i in ids)
+    scores = Parallel(n_jobs=1)(delayed(get_cv_scores_single_experiment)(i, clf=clf) for i in ids)
     bootstrap_ids = [range(len(x)) for x in scores]
     return list(itertools.chain.from_iterable(scores)), list(itertools.chain.from_iterable(bootstrap_ids))
 
